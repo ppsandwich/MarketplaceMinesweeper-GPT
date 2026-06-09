@@ -198,6 +198,7 @@ export default function Home() {
       const activeBoard = ensureGeneratedBoard(sourceTile);
       const activeTile = activeBoard.find((candidate) => candidate.id === tileId);
       if (!activeTile || activeTile.state === "opened") return;
+      if (activeTile.state === "false_report") return;
 
       if (activeTile.state === "flagged") {
         setBoard((current) =>
@@ -219,6 +220,7 @@ export default function Home() {
           setSelectedTileId(tileId);
           setBoard(
             activeBoard.map((tile) => {
+              if (tile.id === tileId) return { ...tile, state: "false_report" as const };
               if (tile.type === "mine") return { ...tile, state: "revealed_mine" };
               return tile;
             })
@@ -229,6 +231,11 @@ export default function Home() {
         setFalseReports(nextFalseReports);
         setReportWarning(
           `False report warning ${nextFalseReports}/2. The third false report is game over.`
+        );
+        setBoard(
+          activeBoard.map((tile) =>
+            tile.id === tileId ? { ...tile, state: "false_report" as const } : tile
+          )
         );
         setSelectedTileId(null);
         return;
@@ -246,10 +253,10 @@ export default function Home() {
     [board, ensureGeneratedBoard, falseReports, startClock, status]
   );
 
-  const setSuspicionCount = useCallback((tileId: string, value: number | null) => {
+  const setSuspicionCount = useCallback((tileId: string, value: number) => {
     setBoard((current) =>
       current.map((tile) =>
-        tile.id === tileId ? { ...tile, playerSuspicionCount: value === null ? null : Math.max(0, Math.min(8, value)) } : tile
+        tile.id === tileId ? { ...tile, playerSuspicionCount: Math.max(0, Math.min(8, value)) } : tile
       )
     );
   }, []);
@@ -258,6 +265,7 @@ export default function Home() {
     const base = `listing tile, row ${tile.y + 1}, column ${tile.x + 1}`;
     if (tile.state === "hidden") return `Unopened ${base}`;
     if (tile.state === "flagged") return `Reported ${base}`;
+    if (tile.state === "false_report") return `False report on ${base}`;
     if (tile.state === "opened") return `Opened ${base}${status === "playing" ? "" : `, ${tile.adjacentMineCount} adjacent scams`}`;
     if (tile.state === "exploded") return `Scam listing opened, row ${tile.y + 1}, column ${tile.x + 1}`;
     return `Revealed scam listing, row ${tile.y + 1}, column ${tile.x + 1}`;
@@ -338,6 +346,7 @@ export default function Home() {
                     "focus:z-10",
                     tile.state === "hidden" && "border-[#d4c9b9] bg-[#f8f5ee] hover:bg-[#fffaf0]",
                     tile.state === "flagged" && "border-notice bg-notice text-ink",
+                    tile.state === "false_report" && "border-[#b42318] bg-[#b42318] text-white",
                     tile.state === "opened" && "border-[#b9c7b5] bg-[#dbe8d7] text-moss",
                     tile.state === "exploded" && "border-[#b42318] bg-[#b42318] text-white",
                     tile.state === "revealed_mine" && "border-gum bg-gum text-white"
@@ -362,7 +371,8 @@ export default function Home() {
                 >
                   <span className="absolute left-1 top-1 hidden h-1.5 w-1.5 rounded-full bg-ink/20 sm:block" />
                   {tile.state === "flagged" && <span className="text-[10px] sm:text-xs">Reported</span>}
-                  {tile.state === "opened" && <span className="text-xl sm:text-3xl">{note ?? ""}</span>}
+                  {tile.state === "false_report" && <span className="px-1 text-[9px] leading-tight sm:text-xs">FALSE REPORT</span>}
+                  {tile.state === "opened" && note > 0 && <span className="text-xl sm:text-3xl">{note}</span>}
                   {isMineShown && <span className="text-[10px] sm:text-xs">SCAM</span>}
                   {tile.state === "hidden" && (
                     <Search className="h-[42%] w-[42%] text-ink/35" aria-hidden="true" strokeWidth={2.6} />
