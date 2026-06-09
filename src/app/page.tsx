@@ -300,7 +300,7 @@ export default function Home() {
   const setSuspicionCount = useCallback((tileId: string, value: number) => {
     setBoard((current) =>
       current.map((tile) =>
-        tile.id === tileId ? { ...tile, playerSuspicionCount: Math.max(0, Math.min(8, value)) } : tile
+        tile.id === tileId ? { ...tile, playerSuspicionCount: Math.max(0, Math.min(5, value)) } : tile
       )
     );
   }, []);

@@ -47,6 +47,51 @@ function secretHighlight(active: boolean): string {
   return active ? "ring-2 ring-gum bg-notice/25 shadow-[0_0_0_4px_rgba(245,211,107,0.28)]" : "";
 }
 
+function splitSentences(description: string): string[] {
+  return description.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [description];
+}
+
+function isSuspiciousDescriptionSentence(sentence: string, listing: MarketplaceListing): boolean {
+  const normalized = sentence.toLowerCase();
+  const signals = listing.suspiciousSignals;
+  const has = (signal: SuspiciousSignal) => signals.includes(signal);
+
+  return (
+    (has("delivery_only") && /\b(delivery|courier|transport)\b/.test(normalized)) ||
+    (has("deposit_required") && /\b(deposit|bond|holding|hold payment|holding fee|small fee|fuel contribution)\b/.test(normalized)) ||
+    (has("explicit_not_a_scam") && /not a scam/.test(normalized)) ||
+    (has("payment_outside_platform") && /\b(transfer|bank transfer|direct transfer|payment clears|payment now)\b/.test(normalized)) ||
+    (has("urgent_sale_pressure") && /\b(today|tonight|quickly|need gone|before|flight|window closes)\b/.test(normalized)) ||
+    (has("poor_grammar") && /is good item working nice/.test(normalized)) ||
+    (has("too_many_emojis") && /🔥|😱|💸|🙏|amazing deal/.test(sentence)) ||
+    (has("sob_story") && /\b(cousin|emergency|please be kind|estate|settlement)\b/.test(normalized)) ||
+    (has("refuses_inspection") && /\b(no inspections|inspection|cannot inspect|viewing address)\b/.test(normalized)) ||
+    (has("duplicate_listing_language") && /excellent condition.*excellent condition|serious buyers only.*serious buyers only/.test(normalized)) ||
+    (has("stock_photo") && /\b(catalogue|stock|supplier photos|box photo|boxed|packed already)\b/.test(normalized))
+  );
+}
+
+function renderDescription(description: string, listing: MarketplaceListing, secretMode: boolean) {
+  return splitSentences(description).map((sentence, index) => {
+    const highlighted = secretMode && isSuspiciousDescriptionSentence(sentence, listing);
+
+    return (
+      <span
+        key={`${sentence}-${index}`}
+        className={[
+          "rounded-sm",
+          highlighted && "bg-notice/45 px-1 py-0.5 ring-2 ring-gum/70"
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {sentence}
+        {index < splitSentences(description).length - 1 ? " " : ""}
+      </span>
+    );
+  });
+}
+
 export function ListingModal({
   tile,
   listing,
@@ -67,24 +112,11 @@ export function ListingModal({
   const note = tile.playerSuspicionCount;
   const secretScamListing = secretMode && tile.type === "mine";
   const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"]);
-  const priceHighlight = secretMode && hasSignal(listing, ["suspiciously_low_price"]);
+  const titleHighlight = secretMode && hasSignal(listing, ["explicit_not_a_scam"]);
   const locationHighlight = secretMode && hasSignal(listing, ["vague_location"]);
-  const sellerHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo", "brand_new_profile", "unnatural_seller_name"]);
-  const descriptionHighlight =
-    secretMode &&
-    hasSignal(listing, [
-      "delivery_only",
-      "deposit_required",
-      "explicit_not_a_scam",
-      "payment_outside_platform",
-      "urgent_sale_pressure",
-      "poor_grammar",
-      "too_many_emojis",
-      "sob_story",
-      "refuses_inspection",
-      "duplicate_listing_language",
-      "stock_photo"
-    ]);
+  const avatarHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo"]);
+  const sellerNameHighlight = secretMode && hasSignal(listing, ["unnatural_seller_name"]);
+  const sellerAgeHighlight = secretMode && hasSignal(listing, ["brand_new_profile"]);
 
   useEffect(() => {
     setAvatarFailed(false);
@@ -125,26 +157,32 @@ export function ListingModal({
 
             <div className="pr-10">
               <p className="text-sm font-semibold uppercase tracking-[0.12em] text-moss">Marketplace listing</p>
-              <h2 id="listing-title" className="mt-2 text-2xl font-black leading-tight text-ink">
+              <h2
+                id="listing-title"
+                className={[
+                  "mt-2 rounded-md text-2xl font-black leading-tight text-ink",
+                  secretHighlight(titleHighlight)
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 {listing.title}
               </h2>
-              <p className={["mt-2 inline-block rounded-md px-1 text-3xl font-black text-gum", secretHighlight(priceHighlight)].filter(Boolean).join(" ")}>
-                {listing.price}
-              </p>
+              <p className="mt-2 inline-block rounded-md px-1 text-3xl font-black text-gum">{listing.price}</p>
               <p className={["mt-1 rounded-md text-sm font-semibold text-ink/65", secretHighlight(locationHighlight)].filter(Boolean).join(" ")}>
                 {listing.location}
               </p>
             </div>
 
-            <div
-              className={[
-                "mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3",
-                secretHighlight(sellerHighlight)
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink">
+            <div className="mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3">
+              <div
+                className={[
+                  "grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink",
+                  secretHighlight(avatarHighlight)
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 {listing.sellerAvatarFilename && !avatarFailed ? (
                   <img
                     src={`/listings/${listing.sellerAvatarFilename}`}
@@ -164,20 +202,17 @@ export function ListingModal({
                 )}
               </div>
               <div>
-                <p className="font-bold">{listing.sellerName}</p>
-                <p className="text-sm text-ink/65">{listing.sellerProfileAge}</p>
+                <p className={["rounded-sm font-bold", secretHighlight(sellerNameHighlight)].filter(Boolean).join(" ")}>
+                  {listing.sellerName}
+                </p>
+                <p className={["rounded-sm text-sm text-ink/65", secretHighlight(sellerAgeHighlight)].filter(Boolean).join(" ")}>
+                  {listing.sellerProfileAge}
+                </p>
               </div>
             </div>
 
-            <p
-              className={[
-                "mt-5 whitespace-pre-line rounded-md text-base leading-7 text-ink/85",
-                secretHighlight(descriptionHighlight)
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {listing.description}
+            <p className="mt-5 text-base leading-7 text-ink/85">
+              {renderDescription(listing.description, listing, secretMode)}
             </p>
 
             <div className="mt-5 rounded-md border border-ink/15 bg-white/75 p-3">
@@ -200,7 +235,7 @@ export function ListingModal({
                     type="button"
                     aria-label="Increase suspicious details note"
                     className="grid h-10 w-10 place-items-center border-l border-ink/15 disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-ink/30"
-                    onClick={() => onSetSuspicionCount(tile.id, Math.min(8, note + 1))}
+                    onClick={() => onSetSuspicionCount(tile.id, Math.min(5, note + 1))}
                     disabled={isAlreadyOpened}
                   >
                     <Plus size={16} />

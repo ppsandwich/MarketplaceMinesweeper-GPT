@@ -6,35 +6,19 @@ const requiredCounts: Record<number, number> = {
   2: 12,
   3: 12,
   4: 8,
-  5: 6,
-  6: 4,
-  7: 2,
-  8: 1
+  5: 6
 };
 
-const signalOrder: SuspiciousSignal[] = [
-  "suspiciously_low_price",
-  "delivery_only",
-  "deposit_required",
-  "brand_new_profile",
-  "seller_no_face_photo",
-  "vague_location",
-  "urgent_sale_pressure",
-  "image_description_mismatch",
-  "explicit_not_a_scam",
-  "payment_outside_platform",
-  "refuses_inspection",
-  "stock_photo",
-  "unnatural_seller_name",
-  "multiple_items_in_photos",
-  "poor_grammar",
-  "too_many_emojis",
-  "sob_story",
-  "duplicate_listing_language"
+const sectionSignalChoices: Array<{
+  section: "title" | "description" | "seller" | "photos" | "location";
+  signals: SuspiciousSignal[];
+}> = [
+  { section: "description", signals: ["delivery_only", "deposit_required", "payment_outside_platform", "urgent_sale_pressure", "refuses_inspection", "poor_grammar", "too_many_emojis", "sob_story", "duplicate_listing_language"] },
+  { section: "seller", signals: ["brand_new_profile", "seller_no_face_photo", "unnatural_seller_name"] },
+  { section: "photos", signals: ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"] },
+  { section: "location", signals: ["vague_location"] },
+  { section: "title", signals: ["explicit_not_a_scam"] }
 ];
-
-const photoSignals: SuspiciousSignal[] = ["image_description_mismatch", "multiple_items_in_photos"];
-const textSignals = signalOrder.filter((signal) => !photoSignals.includes(signal));
 
 const bases: Array<{
   slug: string;
@@ -382,11 +366,12 @@ function imageFilename(baseSlug: string, count: number, index: number): string {
 }
 
 function mismatchedImageFilenames(baseSlug: string, count: number, index: number): string[] {
-  const firstCount = (count + 2) % 9;
+  const bucketCount = Object.keys(requiredCounts).length;
+  const firstCount = (count + 2) % bucketCount;
   const firstIndex = (index + 5) % requiredCounts[firstCount];
   const firstBase = bases.find((base) => base.slug !== baseSlug && base.category !== bases[firstIndex % bases.length].category)
     ?? bases[(index + 5) % bases.length];
-  const secondCount = (count + 5) % 9;
+  const secondCount = (count + 5) % bucketCount;
   const secondIndex = (index + 8) % requiredCounts[secondCount];
   const secondBase = bases.find((base) => base.slug !== baseSlug && base.slug !== firstBase.slug) ?? bases[(index + 8) % bases.length];
 
@@ -399,27 +384,22 @@ function mismatchedImageFilenames(baseSlug: string, count: number, index: number
 function chooseSignals(count: number, index: number): SuspiciousSignal[] {
   if (count === 0) return [];
 
-  const signals: SuspiciousSignal[] = [];
-  if ((count + index) % 3 === 0) {
-    signals.push(photoSignals[(count + index) % photoSignals.length]);
+  if (count > sectionSignalChoices.length) {
+    throw new Error(`Cannot create ${count} suspicious elements with one clue per listing section.`);
   }
 
-  let cursor = (count * 3 + index * 2) % textSignals.length;
-  while (signals.length < count) {
-    const signal = textSignals[cursor % textSignals.length];
-    if (!signals.includes(signal)) signals.push(signal);
-    cursor += 1;
-  }
-
-  return signals;
+  return Array.from({ length: count }, (_, offset) => {
+    const sectionChoice = sectionSignalChoices[(index + offset) % sectionSignalChoices.length];
+    return sectionChoice.signals[(count + index + offset) % sectionChoice.signals.length];
+  });
 }
 
 function suspiciousText(signal: SuspiciousSignal): Partial<MarketplaceListing> {
   switch (signal) {
     case "suspiciously_low_price":
-      return { price: "$40" };
+      return {};
     case "delivery_only":
-      return { description: "Delivery only because pickup is complicated today." };
+      return { description: "Postage only because pickup is complicated today." };
     case "deposit_required":
       return { description: "A small deposit holds it before anyone else arrives." };
     case "brand_new_profile":
@@ -433,7 +413,7 @@ function suspiciousText(signal: SuspiciousSignal): Partial<MarketplaceListing> {
     case "image_description_mismatch":
       return {};
     case "explicit_not_a_scam":
-      return { description: "This is absolutely not a scam, which should settle the matter." };
+      return { title: "Definitely real, quick sale" };
     case "payment_outside_platform":
       return { description: "Payment by direct transfer preferred before confirming pickup." };
     case "refuses_inspection":
@@ -463,7 +443,7 @@ function makeListing(count: number, index: number): MarketplaceListing {
   const listing: MarketplaceListing = {
     id: `${base.slug}-clue-${count}-${index + 1}`,
     title: base.title,
-    price: count > 0 && signals.includes("suspiciously_low_price") ? base.cheapPrice : base.normalPrice,
+    price: base.normalPrice,
     location: "Brunswick, VIC",
     sellerName,
     sellerProfileAge: "Joined 2018",
@@ -477,6 +457,7 @@ function makeListing(count: number, index: number): MarketplaceListing {
 
   for (const signal of signals) {
     const patch = suspiciousText(signal);
+    listing.title = patch.title ? `${listing.title} - ${patch.title}` : listing.title;
     listing.description = patch.description ? `${listing.description} ${patch.description}` : listing.description;
     listing.price = patch.price ?? listing.price;
     listing.location = patch.location ?? listing.location;
