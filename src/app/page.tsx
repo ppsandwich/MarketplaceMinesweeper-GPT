@@ -51,12 +51,17 @@ export default function Home() {
   const [falseReports, setFalseReports] = useState(0);
   const [reportWarning, setReportWarning] = useState<string | null>(null);
   const [gameOverMessage, setGameOverMessage] = useState<string | null>(null);
+  const [recentlyReportedTileId, setRecentlyReportedTileId] = useState<string | null>(null);
+  const [delayWinOverlay, setDelayWinOverlay] = useState(false);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
   const flagsUsed = board.filter((tile) => tile.state === "flagged").length;
   const reportPercent = Math.round((flagsUsed / mineCount) * 100);
   const reportProgress = status === "won" && flagsUsed === mineCount ? 100 : reportPercent;
+  const falseReportMax = falseReportLimit - 1;
+  const falseReportPercent = Math.round((falseReports / falseReportMax) * 100);
+  const falseReportProgress = Math.min(100, falseReportPercent);
   const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
   const selectedListing = selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null;
   const elapsedSeconds = startedAt
@@ -86,6 +91,20 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (!recentlyReportedTileId) return;
+
+    const timeout = window.setTimeout(() => setRecentlyReportedTileId(null), 850);
+    return () => window.clearTimeout(timeout);
+  }, [recentlyReportedTileId]);
+
+  useEffect(() => {
+    if (status !== "won" || !delayWinOverlay) return;
+
+    const timeout = window.setTimeout(() => setDelayWinOverlay(false), 850);
+    return () => window.clearTimeout(timeout);
+  }, [delayWinOverlay, status]);
+
   const startClock = useCallback(() => {
     setStartedAt((current) => current ?? Date.now());
     setStatus((current) => (current === "idle" ? "playing" : current));
@@ -105,6 +124,8 @@ export default function Home() {
       setFalseReports(0);
       setReportWarning(null);
       setGameOverMessage(null);
+      setRecentlyReportedTileId(null);
+      setDelayWinOverlay(false);
     },
     [difficulty]
   );
@@ -199,6 +220,7 @@ export default function Home() {
       if (won) {
         setStatus("won");
         setEndedAt(Date.now());
+        setDelayWinOverlay(false);
       }
     },
     [board, ensureGeneratedBoard, startClock, status]
@@ -260,6 +282,7 @@ export default function Home() {
 
       setReportWarning(null);
       setSelectedTileId(null);
+      setRecentlyReportedTileId(tileId);
       const nextBoard = activeBoard.map((tile) => {
         if (tile.id !== tileId || tile.state === "opened") return tile;
         return { ...tile, state: "flagged" as const };
@@ -274,6 +297,7 @@ export default function Home() {
       if (wonByReports) {
         setStatus("won");
         setEndedAt(Date.now());
+        setDelayWinOverlay(true);
       }
     },
     [board, ensureGeneratedBoardForReport, falseReports, mineCount, startClock, status]
@@ -351,6 +375,20 @@ export default function Home() {
                   {flagsUsed}/{mineCount} reported ({reportPercent}%)
                 </span>
               </span>
+              <span
+                className="relative inline-flex min-w-[220px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
+                aria-label={`${falseReports} of ${falseReportMax} false reports, ${falseReportPercent}%`}
+              >
+                <span
+                  className="absolute inset-y-0 left-0 bg-gum/30 transition-[width]"
+                  style={{ width: `${falseReportProgress}%` }}
+                  aria-hidden="true"
+                />
+                <Flag className="relative" size={16} />
+                <span className="relative">
+                  {falseReports}/{falseReportMax} false reports ({falseReportPercent}%)
+                </span>
+              </span>
               <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
                 <Timer size={16} />
                 {formatSeconds(elapsedSeconds)}
@@ -385,7 +423,8 @@ export default function Home() {
                     tile.state === "false_report" && "border-[#b42318] bg-[#b42318] text-white",
                     tile.state === "opened" && "border-[#b9c7b5] bg-[#dbe8d7] text-moss",
                     tile.state === "exploded" && "border-[#b42318] bg-[#b42318] text-white",
-                    tile.state === "revealed_mine" && "border-gum bg-gum text-white"
+                    tile.state === "revealed_mine" && "border-gum bg-gum text-white",
+                    recentlyReportedTileId === tile.id && "tile-report-success"
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -468,7 +507,7 @@ export default function Home() {
         />
       )}
 
-      {status === "won" && (
+      {status === "won" && !delayWinOverlay && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-5" role="dialog" aria-modal="true" aria-labelledby="win-title">
           <section className="w-full max-w-md rounded-lg border-2 border-ink bg-paper p-6 text-center shadow-card">
             <Trophy className="mx-auto mb-4 text-moss" size={56} aria-hidden="true" />

@@ -50,6 +50,10 @@ select:focus-visible {
     animation: modal-in 160ms ease-out;
   }
 
+  .tile-report-success {
+    animation: tile-report-success 780ms ease-out;
+  }
+
   @keyframes modal-in {
     from {
       opacity: 0;
@@ -58,6 +62,29 @@ select:focus-visible {
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes tile-report-success {
+    0% {
+      box-shadow: 0 0 0 0 rgba(80, 106, 85, 0);
+      transform: scale(1);
+    }
+    18% {
+      box-shadow:
+        0 0 0 4px rgba(245, 211, 107, 0.95),
+        0 0 0 9px rgba(80, 106, 85, 0.45);
+      transform: scale(1.1) rotate(-2deg);
+    }
+    42% {
+      box-shadow:
+        0 0 0 2px rgba(245, 211, 107, 0.75),
+        0 0 0 14px rgba(80, 106, 85, 0.22);
+      transform: scale(0.96) rotate(1deg);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(80, 106, 85, 0);
+      transform: scale(1);
     }
   }
 }
