@@ -53,6 +53,7 @@ export function ListingModal({
   const isScammed = status === "lost" && tile.state === "exploded";
   const showGameOverOverlay = status === "lost" && (tile.state === "exploded" || gameOverMessage !== null);
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
+  const isAlreadyOpened = tile.state === "opened";
   const note = tile.playerSuspicionCount;
 
   useEffect(() => {
@@ -129,8 +130,9 @@ export function ListingModal({
                   <button
                     type="button"
                     aria-label="Decrease suspicious details note"
-                    className="grid h-10 w-10 place-items-center border-r border-ink/15"
+                    className="grid h-10 w-10 place-items-center border-r border-ink/15 disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-ink/30"
                     onClick={() => onSetSuspicionCount(tile.id, Math.max(0, note - 1))}
+                    disabled={isAlreadyOpened}
                   >
                     <Minus size={16} />
                   </button>
@@ -140,8 +142,9 @@ export function ListingModal({
                   <button
                     type="button"
                     aria-label="Increase suspicious details note"
-                    className="grid h-10 w-10 place-items-center border-l border-ink/15"
+                    className="grid h-10 w-10 place-items-center border-l border-ink/15 disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-ink/30"
                     onClick={() => onSetSuspicionCount(tile.id, Math.min(8, note + 1))}
+                    disabled={isAlreadyOpened}
                   >
                     <Plus size={16} />
                   </button>
@@ -161,15 +164,26 @@ export function ListingModal({
             )}
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
-                onClick={() => onOpenTile(tile.id)}
-                disabled={status === "won" || (status === "lost" && tile.state !== "exploded")}
-              >
-                <ShieldCheck size={18} />
-                Looks safe
-              </button>
+              {isAlreadyOpened ? (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-md bg-ink/25 px-4 py-3 font-black text-ink"
+                  onClick={onClose}
+                >
+                  <X size={18} />
+                  Close
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
+                  onClick={() => onOpenTile(tile.id)}
+                  disabled={status === "won" || (status === "lost" && tile.state !== "exploded")}
+                >
+                  <ShieldCheck size={18} />
+                  Looks safe
+                </button>
+              )}
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-md border-2 border-gum bg-white px-4 py-3 font-black text-gum disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35"
@@ -190,7 +204,7 @@ export function ListingModal({
               <h3 className="text-4xl font-black">{isScammed ? "SCAMMED! Game Over" : gameOverMessage}</h3>
               <p className="mx-auto mt-3 max-w-md text-lg font-semibold">
                 {isScammed
-                  ? "You sent a deposit to “Definitely Greg” and the couch has entered witness protection."
+                  ? "You sent a deposit to “Definitely Greg”, and you definitely won't hear from Greg again."
                   : "Marketplace moderation has reviewed your enthusiasm and revoked your clipboard."}
               </p>
               <button type="button" className="mt-6 rounded-md bg-white px-5 py-3 font-black text-[#8f1d16]" onClick={onReplay}>

@@ -29,14 +29,14 @@ function formatSeconds(totalSeconds: number) {
   return `${minutes}:${seconds}`;
 }
 
-function statusCopy(status: GameStatus, gameOverMessage: string | null) {
+function statusCopy(status: GameStatus, gameOverMessage: string | null): string | null {
   if (status === "won") {
     return "YOU WON!";
   }
   if (status === "lost") {
     return gameOverMessage ?? "All scam listings are revealed. The paperwork is fictional, but the pain is educational.";
   }
-  return "Inspect listings, write your own clue notes, and report the scams.";
+  return null;
 }
 
 export default function Home() {
@@ -49,7 +49,6 @@ export default function Home() {
   const [endedAt, setEndedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [falseReports, setFalseReports] = useState(0);
-  const [reportWarning, setReportWarning] = useState<string | null>(null);
   const [gameOverMessage, setGameOverMessage] = useState<string | null>(null);
   const [recentlyReportedTileId, setRecentlyReportedTileId] = useState<string | null>(null);
   const [delayWinOverlay, setDelayWinOverlay] = useState(false);
@@ -62,6 +61,7 @@ export default function Home() {
   const falseReportMax = falseReportLimit;
   const falseReportPercent = Math.round((falseReports / falseReportMax) * 100);
   const falseReportProgress = Math.min(100, falseReportPercent);
+  const currentStatusCopy = statusCopy(status, gameOverMessage);
   const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
   const selectedListing = selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null;
   const elapsedSeconds = startedAt
@@ -122,7 +122,6 @@ export default function Home() {
       setEndedAt(null);
       setNow(Date.now());
       setFalseReports(0);
-      setReportWarning(null);
       setGameOverMessage(null);
       setRecentlyReportedTileId(null);
       setDelayWinOverlay(false);
@@ -243,7 +242,6 @@ export default function Home() {
         setBoard((current) =>
           current.map((tile) => (tile.id === tileId ? { ...tile, state: "hidden" as const } : tile))
         );
-        setReportWarning(null);
         return;
       }
 
@@ -253,7 +251,6 @@ export default function Home() {
         if (nextFalseReports >= falseReportLimit) {
           setFalseReports(nextFalseReports);
           setGameOverMessage(bannedMessage);
-          setReportWarning(null);
           setStatus("lost");
           setEndedAt(Date.now());
           setSelectedTileId(tileId);
@@ -268,9 +265,6 @@ export default function Home() {
         }
 
         setFalseReports(nextFalseReports);
-        setReportWarning(
-          `False report warning ${nextFalseReports}/2. The third false report is game over.`
-        );
         setBoard(
           activeBoard.map((tile) =>
             tile.id === tileId ? { ...tile, state: "false_report" as const } : tile
@@ -280,7 +274,6 @@ export default function Home() {
         return;
       }
 
-      setReportWarning(null);
       setSelectedTileId(null);
       setRecentlyReportedTileId(tileId);
       const nextBoard = activeBoard.map((tile) => {
@@ -326,9 +319,6 @@ export default function Home() {
       <header className="flex flex-col justify-between gap-4 border-b-2 border-ink pb-5 lg:flex-row lg:items-end">
         <div>
           <h1 className="text-4xl font-black leading-none sm:text-5xl">Marketplace Minesweeper</h1>
-          <p className="mt-3 max-w-2xl text-base font-semibold text-ink/70">
-            Every listing is a clue. Some are just crimes in a trench coat.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -395,14 +385,8 @@ export default function Home() {
               </span>
               <span className="rounded-md bg-paper px-3 py-2">Seed {seed || "loading"}</span>
             </div>
-            <p className="text-sm font-bold text-ink/65">{statusCopy(status, gameOverMessage)}</p>
+            {currentStatusCopy && <p className="text-sm font-bold text-ink/65">{currentStatusCopy}</p>}
           </div>
-          {reportWarning && status !== "lost" && (
-            <div className="mb-3 rounded-md border-2 border-gum bg-gum/10 p-3 text-sm font-black text-gum">
-              {reportWarning}
-            </div>
-          )}
-
           <div
             className="tile-grid mx-auto grid aspect-square w-full max-w-[min(82vh,760px)] gap-1 rounded-md border-2 border-ink bg-ink p-1"
             aria-label="Marketplace Minesweeper board"
@@ -410,6 +394,10 @@ export default function Home() {
             {board.map((tile) => {
               const note = tile.playerSuspicionCount;
               const isMineShown = tile.state === "exploded" || tile.state === "revealed_mine";
+              const isCorrectOpenedSafeTile =
+                tile.state === "opened" && tile.type === "safe" && note === tile.adjacentMineCount;
+              const isIncorrectOpenedSafeTile =
+                tile.state === "opened" && tile.type === "safe" && note !== tile.adjacentMineCount;
               return (
                 <button
                   key={tile.id}
@@ -421,7 +409,8 @@ export default function Home() {
                     tile.state === "hidden" && "border-[#d4c9b9] bg-[#f8f5ee] hover:bg-[#fffaf0]",
                     tile.state === "flagged" && "border-notice bg-notice text-ink",
                     tile.state === "false_report" && "border-[#b42318] bg-[#b42318] text-white",
-                    tile.state === "opened" && "border-[#b9c7b5] bg-[#dbe8d7] text-moss",
+                    isCorrectOpenedSafeTile && "border-[#8fb18a] bg-[#dbe8d7] text-moss",
+                    isIncorrectOpenedSafeTile && "border-[#d4aa35] bg-[#fff1b8] text-ink",
                     tile.state === "exploded" && "border-[#b42318] bg-[#b42318] text-white",
                     tile.state === "revealed_mine" && "border-gum bg-gum text-white",
                     recentlyReportedTileId === tile.id && "tile-report-success"
