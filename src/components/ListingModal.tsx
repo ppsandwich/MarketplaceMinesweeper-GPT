@@ -172,15 +172,12 @@ export function ListingModal({
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-md border border-ink/20 bg-white px-4 py-3 font-black text-ink disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35"
+                className="inline-flex items-center gap-2 rounded-md border-2 border-gum bg-white px-4 py-3 font-black text-gum disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35"
                 onClick={() => onToggleFlag(tile.id)}
                 disabled={reportDisabled}
               >
                 <Flag size={18} />
                 {tile.state === "false_report" ? "False report" : tile.state === "flagged" ? "Unreport" : "Report listing"}
-              </button>
-              <button type="button" className="rounded-md border border-ink/20 px-4 py-3 font-bold" onClick={onClose}>
-                Close
               </button>
             </div>
           </div>

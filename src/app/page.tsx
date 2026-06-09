@@ -31,7 +31,7 @@ function formatSeconds(totalSeconds: number) {
 
 function statusCopy(status: GameStatus, gameOverMessage: string | null) {
   if (status === "won") {
-    return "You cleared the board without buying a $200 console from Sofa Warehouse Kelvin.";
+    return "YOU WON!";
   }
   if (status === "lost") {
     return gameOverMessage ?? "All scam listings are revealed. The paperwork is fictional, but the pain is educational.";
@@ -55,6 +55,8 @@ export default function Home() {
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
   const flagsUsed = board.filter((tile) => tile.state === "flagged").length;
+  const reportPercent = Math.round((flagsUsed / mineCount) * 100);
+  const reportProgress = status === "won" && flagsUsed === mineCount ? 100 : reportPercent;
   const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
   const selectedListing = selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null;
   const elapsedSeconds = startedAt
@@ -124,6 +126,21 @@ export default function Home() {
     },
     [board, mineCount, seed]
   );
+
+  const ensureGeneratedBoardForReport = useCallback((): Tile[] => {
+    const isGenerated = board.some((candidate) => candidate.listingId);
+    if (isGenerated) return board;
+
+    const generated = generateBoard({
+      width: BOARD_WIDTH,
+      height: BOARD_HEIGHT,
+      mineCount,
+      seed,
+      safeFirstClickPosition: { x: -1, y: -1 }
+    });
+    setBoard(generated);
+    return generated;
+  }, [board, mineCount, seed]);
 
   const inspectTile = useCallback(
     (tileId: string) => {
@@ -195,7 +212,7 @@ export default function Home() {
       if (!sourceTile || sourceTile.state === "opened") return;
 
       startClock();
-      const activeBoard = ensureGeneratedBoard(sourceTile);
+      const activeBoard = ensureGeneratedBoardForReport();
       const activeTile = activeBoard.find((candidate) => candidate.id === tileId);
       if (!activeTile || activeTile.state === "opened") return;
       if (activeTile.state === "false_report") return;
@@ -243,14 +260,23 @@ export default function Home() {
 
       setReportWarning(null);
       setSelectedTileId(null);
+      const nextBoard = activeBoard.map((tile) => {
+        if (tile.id !== tileId || tile.state === "opened") return tile;
+        return { ...tile, state: "flagged" as const };
+      });
+      const wonByReports = nextBoard.filter((tile) => tile.type === "mine" && tile.state === "flagged").length === mineCount;
+
       setBoard(
-        activeBoard.map((tile) => {
-          if (tile.id !== tileId || tile.state === "opened") return tile;
-          return { ...tile, state: "flagged" as const };
-        })
+        wonByReports
+          ? nextBoard.map((tile) => (tile.type === "mine" && tile.state !== "flagged" ? { ...tile, state: "revealed_mine" as const } : tile))
+          : nextBoard
       );
+      if (wonByReports) {
+        setStatus("won");
+        setEndedAt(Date.now());
+      }
     },
-    [board, ensureGeneratedBoard, falseReports, startClock, status]
+    [board, ensureGeneratedBoardForReport, falseReports, mineCount, startClock, status]
   );
 
   const setSuspicionCount = useCallback((tileId: string, value: number) => {
@@ -311,9 +337,19 @@ export default function Home() {
         <div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border-2 border-ink bg-white/75 p-3">
             <div className="flex flex-wrap gap-2 text-sm font-black">
-              <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
-                <Flag size={16} />
-                {flagsUsed}/{mineCount} reported
+              <span
+                className="relative inline-flex min-w-[190px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
+                aria-label={`${flagsUsed} of ${mineCount} scams reported, ${reportPercent}%`}
+              >
+                <span
+                  className="absolute inset-y-0 left-0 bg-moss/30 transition-[width]"
+                  style={{ width: `${reportProgress}%` }}
+                  aria-hidden="true"
+                />
+                <Flag className="relative" size={16} />
+                <span className="relative">
+                  {flagsUsed}/{mineCount} reported ({reportPercent}%)
+                </span>
               </span>
               <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
                 <Timer size={16} />
@@ -430,6 +466,38 @@ export default function Home() {
           onReplay={() => resetGame()}
           gameOverMessage={gameOverMessage}
         />
+      )}
+
+      {status === "won" && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-5" role="dialog" aria-modal="true" aria-labelledby="win-title">
+          <section className="w-full max-w-md rounded-lg border-2 border-ink bg-paper p-6 text-center shadow-card">
+            <Trophy className="mx-auto mb-4 text-moss" size={56} aria-hidden="true" />
+            <h2 id="win-title" className="text-4xl font-black text-ink">
+              YOU WON!
+            </h2>
+            <p className="mt-3 text-base font-semibold text-ink/75">
+              You reported the scams without getting banned by marketplace moderation.
+            </p>
+            <dl className="mt-5 grid grid-cols-2 gap-3 rounded-md border border-ink/15 bg-white/70 p-4 text-sm">
+              <dt className="font-bold text-ink/60">False reports</dt>
+              <dd className="text-right font-black">{falseReports}</dd>
+              <dt className="font-bold text-ink/60">Time taken</dt>
+              <dd className="text-right font-black">{formatSeconds(elapsedSeconds)}</dd>
+              <dt className="font-bold text-ink/60">Reported</dt>
+              <dd className="text-right font-black">
+                {flagsUsed}/{mineCount} ({reportPercent}%)
+              </dd>
+            </dl>
+            <button
+              type="button"
+              className="mt-6 inline-flex items-center gap-2 rounded-md bg-ink px-5 py-3 font-black text-paper"
+              onClick={() => resetGame()}
+            >
+              <RotateCcw size={18} />
+              Restart
+            </button>
+          </section>
+        </div>
       )}
     </main>
   );
