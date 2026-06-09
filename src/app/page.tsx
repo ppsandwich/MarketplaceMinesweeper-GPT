@@ -59,7 +59,7 @@ export default function Home() {
   const flagsUsed = board.filter((tile) => tile.state === "flagged").length;
   const reportPercent = Math.round((flagsUsed / mineCount) * 100);
   const reportProgress = status === "won" && flagsUsed === mineCount ? 100 : reportPercent;
-  const falseReportMax = falseReportLimit - 1;
+  const falseReportMax = falseReportLimit;
   const falseReportPercent = Math.round((falseReports / falseReportMax) * 100);
   const falseReportProgress = Math.min(100, falseReportPercent);
   const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
@@ -94,14 +94,14 @@ export default function Home() {
   useEffect(() => {
     if (!recentlyReportedTileId) return;
 
-    const timeout = window.setTimeout(() => setRecentlyReportedTileId(null), 850);
+    const timeout = window.setTimeout(() => setRecentlyReportedTileId(null), 1100);
     return () => window.clearTimeout(timeout);
   }, [recentlyReportedTileId]);
 
   useEffect(() => {
     if (status !== "won" || !delayWinOverlay) return;
 
-    const timeout = window.setTimeout(() => setDelayWinOverlay(false), 850);
+    const timeout = window.setTimeout(() => setDelayWinOverlay(false), 1100);
     return () => window.clearTimeout(timeout);
   }, [delayWinOverlay, status]);
 
@@ -456,40 +456,32 @@ export default function Home() {
               );
             })}
           </div>
+          {recentlyReportedTileId && (
+            <div
+              className="report-success-toast pointer-events-none absolute left-1/2 top-4 z-20 rounded-md border-2 border-ink bg-notice px-5 py-3 text-lg font-black text-ink shadow-card"
+              role="status"
+              aria-live="polite"
+            >
+              Good job!
+            </div>
+          )}
         </div>
 
         <aside className="space-y-4">
           <section className="rounded-md border-2 border-ink bg-white/80 p-4">
             <h2 className="text-lg font-black">How to Play</h2>
             <p className="mt-3 text-sm leading-6 text-ink/75">
-              Each square is a marketplace listing. Some are scams. Open a listing and look for suspicious details:
-              weird prices, odd seller names, delivery-only nonsense, brand new profiles, photos that do not match,
-              and the classic declaration that nothing suspicious is happening.
+              Each square is a marketplace listing. Some are scams. Open a listing and look for suspicious details.
             </p>
             <p className="mt-3 text-sm leading-6 text-ink/75">
-              In a safe listing, suspicious details equal the number of scam listings touching it. Use the plus and
-              minus controls as your own notes, report likely scams, and open every safe listing.
+              In a safe listing, suspicious details equal the number of scam listings touching it.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-ink/75">
+              You win the game by reporting every scam. You lose the game if you green-flag a scam, or falsely report
+              three safe listings as scams.
             </p>
           </section>
 
-          <section className="rounded-md border-2 border-ink bg-[#fff7da] p-4">
-            <h2 className="inline-flex items-center gap-2 text-lg font-black">
-              <Trophy size={19} />
-              Status
-            </h2>
-            <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <dt className="font-bold text-ink/60">Mode</dt>
-              <dd className="text-right font-black">{DIFFICULTIES[difficulty].label}</dd>
-              <dt className="font-bold text-ink/60">Mines</dt>
-              <dd className="text-right font-black">{mineCount}</dd>
-              <dt className="font-bold text-ink/60">Opened</dt>
-              <dd className="text-right font-black">{board.filter((tile) => tile.state === "opened").length}</dd>
-              <dt className="font-bold text-ink/60">False reports</dt>
-              <dd className="text-right font-black">{falseReports}/2 warnings</dd>
-              <dt className="font-bold text-ink/60">Result</dt>
-              <dd className="text-right font-black capitalize">{status}</dd>
-            </dl>
-          </section>
         </aside>
       </section>
 
@@ -508,8 +500,8 @@ export default function Home() {
       )}
 
       {status === "won" && !delayWinOverlay && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-5" role="dialog" aria-modal="true" aria-labelledby="win-title">
-          <section className="w-full max-w-md rounded-lg border-2 border-ink bg-paper p-6 text-center shadow-card">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/80 p-5" role="dialog" aria-modal="true" aria-labelledby="win-title">
+          <section className="w-full max-w-md rounded-lg border-2 border-ink bg-[#fffaf0] p-6 text-center shadow-card">
             <Trophy className="mx-auto mb-4 text-moss" size={56} aria-hidden="true" />
             <h2 id="win-title" className="text-4xl font-black text-ink">
               YOU WON!
