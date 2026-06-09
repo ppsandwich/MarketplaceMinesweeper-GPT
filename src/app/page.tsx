@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, RotateCcw, Search, Timer, Trophy } from "lucide-react";
+import { Flag, Pi, RotateCcw, Search, Timer, Trophy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListingModal } from "@/components/ListingModal";
 import { listingsBySuspicionCount } from "@/data/listings";
@@ -52,6 +52,7 @@ export default function Home() {
   const [gameOverMessage, setGameOverMessage] = useState<string | null>(null);
   const [recentlyReportedTileId, setRecentlyReportedTileId] = useState<string | null>(null);
   const [delayWinOverlay, setDelayWinOverlay] = useState(false);
+  const [secretMode, setSecretMode] = useState(false);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
@@ -469,6 +470,16 @@ export default function Home() {
               You win the game by reporting every scam. You lose the game if you green-flag a scam, or falsely report
               three safe listings as scams.
             </p>
+            <div className="mt-4 grid gap-2 border-t border-ink/15 pt-4 text-sm font-bold text-ink/75">
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-5 rounded-sm border border-[#d4aa35] bg-[#fff1b8]" aria-hidden="true" />
+                <span>Yellow tiles are incorrect numbers.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-5 rounded-sm border border-[#8fb18a] bg-[#dbe8d7]" aria-hidden="true" />
+                <span>Green tiles are correct numbers.</span>
+              </div>
+            </div>
           </section>
 
         </aside>
@@ -485,6 +496,7 @@ export default function Home() {
           onSetSuspicionCount={setSuspicionCount}
           onReplay={() => resetGame()}
           gameOverMessage={gameOverMessage}
+          secretMode={secretMode}
         />
       )}
 
@@ -519,6 +531,21 @@ export default function Home() {
           </section>
         </div>
       )}
+      <button
+        type="button"
+        aria-label={secretMode ? "Disable secret highlight mode" : "Enable secret highlight mode"}
+        aria-pressed={secretMode}
+        title="Secret mode"
+        className={[
+          "fixed bottom-3 right-3 z-40 grid h-8 w-8 place-items-center rounded-full border border-ink/10 bg-paper/70 text-ink/35 shadow-sm transition hover:text-ink/75 focus:text-ink",
+          secretMode && "border-gum/50 bg-notice/80 text-gum"
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        onClick={() => setSecretMode((current) => !current)}
+      >
+        <Pi size={16} aria-hidden="true" />
+      </button>
     </main>
   );
 }
