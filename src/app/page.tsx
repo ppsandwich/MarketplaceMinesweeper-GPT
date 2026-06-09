@@ -153,7 +153,11 @@ export default function Home() {
       startClock();
       const activeBoard = ensureGeneratedBoard(sourceTile);
       const tile = activeBoard.find((candidate) => candidate.id === tileId);
-      if (!tile || tile.state === "flagged" || tile.state === "opened") return;
+      if (!tile || tile.state === "flagged") return;
+      if (tile.state === "opened") {
+        setSelectedTileId(null);
+        return;
+      }
 
       if (tile.type === "mine") {
         setBoard(
