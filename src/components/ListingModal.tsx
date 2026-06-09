@@ -61,7 +61,7 @@ export function ListingModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 p-0 sm:items-center sm:p-5"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/75 p-0 sm:items-center sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="listing-title"
@@ -184,8 +184,8 @@ export function ListingModal({
         </div>
 
         {showGameOverOverlay && (
-          <div className="absolute inset-0 grid place-items-center bg-[#b42318]/92 p-6 text-center text-white">
-            <div>
+          <div className="absolute inset-0 grid place-items-center bg-[#5f120d]/95 p-6 text-center text-white">
+            <div className="rounded-lg bg-ink/45 p-6 shadow-card">
               <AlertTriangle className="mx-auto mb-4" size={58} aria-hidden="true" />
               <h3 className="text-4xl font-black">{isScammed ? "SCAMMED! Game Over" : gameOverMessage}</h3>
               <p className="mx-auto mt-3 max-w-md text-lg font-semibold">
