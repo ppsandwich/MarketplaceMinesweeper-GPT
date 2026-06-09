@@ -58,6 +58,14 @@ select:focus-visible {
     animation: report-success-toast 1050ms ease-out;
   }
 
+  .receipt-panel {
+    animation: receipt-panel-in 220ms ease-out;
+  }
+
+  .receipt-row {
+    animation: receipt-row-in 260ms ease-out;
+  }
+
   @keyframes modal-in {
     from {
       opacity: 0;
@@ -116,6 +124,28 @@ select:focus-visible {
     100% {
       opacity: 0;
       transform: translate(-50%, -8px) scale(0.98);
+    }
+  }
+
+  @keyframes receipt-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes receipt-row-in {
+    from {
+      opacity: 0;
+      transform: translateY(-5px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 }
