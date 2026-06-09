@@ -1,3 +1,5 @@
+import type { MarketplaceListing } from "@/types/listing";
+
 export type TileType = "safe" | "mine";
 export type TileState = "hidden" | "opened" | "flagged" | "false_report" | "exploded" | "revealed_mine";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -16,5 +18,6 @@ export interface Tile {
   state: TileState;
   adjacentMineCount: number;
   listingId: string | null;
+  listing: MarketplaceListing | null;
   playerSuspicionCount: number;
 }

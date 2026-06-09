@@ -1,9 +1,8 @@
 import { adjacentPositions } from "@/game/adjacency";
 import { seededRandom } from "@/game/seededRandom";
-import { listingsBySuspicionCount } from "@/data/listings";
-import { scamListings } from "@/data/scamListings";
+import { listingsBySuspicionCount, neutralListingTemplates } from "@/data/listings";
 import type { Position, Tile } from "@/types/game";
-import type { MarketplaceListing } from "@/types/listing";
+import type { MarketplaceListing, SuspiciousSignal } from "@/types/listing";
 
 interface GenerateBoardOptions {
   width: number;
@@ -15,6 +14,26 @@ interface GenerateBoardOptions {
 
 const MAX_SAFE_ADJACENT_MINE_COUNT = 5;
 const MAX_BOARD_GENERATION_ATTEMPTS = 500;
+const scamDescriptionClues = [
+  "A small deposit holds it before anyone else arrives.",
+  "Postage only because pickup is complicated today.",
+  "Payment by direct transfer preferred before confirming pickup.",
+  "Need gone tonight before a very important van appears."
+] as const;
+const unnaturalSellerNames = [
+  "Market Value Kelvin",
+  "Pickup Window Office",
+  "Fast Deal Warehouse",
+  "Definitely Greg",
+  "Listing Support Desk"
+] as const;
+const nonFaceAvatarFilenames = [
+  "profile-non-face-moving-box-01.png",
+  "profile-non-face-dealz-logo-01.png",
+  "profile-non-face-suspicious-cat-01.png",
+  "profile-non-face-blank-grey-01.png",
+  "profile-non-face-ai-weird-smile-01.png"
+] as const;
 
 function tileId(x: number, y: number): string {
   return `${x}-${y}`;
@@ -31,6 +50,56 @@ function pickUnused<T extends MarketplaceListing>(pool: T[], used: Set<string>, 
   const picked = source[Math.floor(random() * source.length)];
   used.add(picked.id);
   return picked;
+}
+
+function scamListingFromTemplate(
+  template: MarketplaceListing,
+  allTemplates: MarketplaceListing[],
+  index: number,
+  random: () => number
+): MarketplaceListing {
+  const sellerSignalChoices: SuspiciousSignal[] = ["unnatural_seller_name", "seller_no_face_photo", "brand_new_profile"];
+  const descriptionSignalChoices: SuspiciousSignal[] = ["deposit_required", "delivery_only", "payment_outside_platform", "urgent_sale_pressure"];
+  const sellerSignal = sellerSignalChoices[Math.floor(random() * sellerSignalChoices.length)];
+  const descriptionSignal = descriptionSignalChoices[Math.floor(random() * descriptionSignalChoices.length)];
+  const signals: SuspiciousSignal[] = [
+    "explicit_not_a_scam",
+    descriptionSignal,
+    sellerSignal,
+    "image_description_mismatch",
+    "vague_location"
+  ];
+  const alternateImages = allTemplates
+    .filter((candidate) => candidate.id !== template.id && candidate.imageFilenames.length > 0)
+    .flatMap((candidate) => candidate.imageFilenames);
+  const mismatchedImage = alternateImages[Math.floor(random() * alternateImages.length)] ?? template.imageFilenames[0];
+  const listing: MarketplaceListing = {
+    ...template,
+    id: `${template.id}-scam-${index}`,
+    title: `${template.title} - Definitely real, quick sale`,
+    location: "VIC, maybe",
+    description: `${template.description} ${scamDescriptionClues[descriptionSignalChoices.indexOf(descriptionSignal)]}`,
+    imageFilenames: [template.imageFilenames[0], mismatchedImage],
+    suspiciousSignals: signals,
+    isScamTemplate: true
+  };
+
+  if (sellerSignal === "unnatural_seller_name") {
+    listing.sellerName = unnaturalSellerNames[Math.floor(random() * unnaturalSellerNames.length)];
+    listing.sellerAvatarType = "face";
+    listing.sellerAvatarFilename = null;
+  }
+
+  if (sellerSignal === "seller_no_face_photo") {
+    listing.sellerAvatarType = "object";
+    listing.sellerAvatarFilename = nonFaceAvatarFilenames[Math.floor(random() * nonFaceAvatarFilenames.length)];
+  }
+
+  if (sellerSignal === "brand_new_profile") {
+    listing.sellerProfileAge = "Joined this week";
+  }
+
+  return listing;
 }
 
 export function generateBoard({
@@ -72,7 +141,7 @@ export function generateBoard({
     if (hasImpossibleSafeListing) continue;
 
     const usedSafeListings = new Set<string>();
-    const usedScamListings = new Set<string>();
+    const usedScamTemplates = new Set<string>();
 
     return Array.from({ length: width * height }, (_, index): Tile => {
       const x = index % width;
@@ -82,7 +151,12 @@ export function generateBoard({
       const adjacentMineCount = adjacentCounts[index];
 
       const listing = isMine
-        ? pickUnused(scamListings, usedScamListings, random)
+        ? scamListingFromTemplate(
+            pickUnused(neutralListingTemplates, usedScamTemplates, random),
+            neutralListingTemplates,
+            index,
+            random
+          )
         : pickUnused(listingsBySuspicionCount[adjacentMineCount] ?? [], usedSafeListings, random);
 
       return {
@@ -93,6 +167,7 @@ export function generateBoard({
         state: "hidden",
         adjacentMineCount,
         listingId: listing.id,
+        listing,
         playerSuspicionCount: 0
       };
     });
@@ -113,6 +188,7 @@ export function createEmptyBoard(width: number, height: number): Tile[] {
       state: "hidden",
       adjacentMineCount: 0,
       listingId: null,
+      listing: null,
       playerSuspicionCount: 0
     };
   });

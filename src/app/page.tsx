@@ -4,7 +4,6 @@ import { Flag, Pi, RotateCcw, Search, Timer, Trophy, Wallet } from "lucide-react
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListingModal } from "@/components/ListingModal";
 import { listingsBySuspicionCount } from "@/data/listings";
-import { scamListings } from "@/data/scamListings";
 import { validateListingsData } from "@/data/validateListings";
 import { generateBoard, createEmptyBoard } from "@/game/board";
 import { BOARD_HEIGHT, BOARD_WIDTH, DIFFICULTIES } from "@/game/difficulty";
@@ -27,7 +26,6 @@ interface PurchasedListing {
 function listingMap(): Map<string, MarketplaceListing> {
   const map = new Map<string, MarketplaceListing>();
   Object.values(listingsBySuspicionCount).flat().forEach((listing) => map.set(listing.id, listing));
-  scamListings.forEach((listing) => map.set(listing.id, listing));
   return map;
 }
 
@@ -52,8 +50,7 @@ function formatCurrency(amount: number): string {
 
 function calculateStartingBudget(board: Tile[], listings: Map<string, MarketplaceListing>): number {
   const totalListingPrice = board.reduce((total, tile) => {
-    if (!tile.listingId) return total;
-    const listing = listings.get(tile.listingId);
+    const listing = tile.listing ?? (tile.listingId ? listings.get(tile.listingId) : null);
     return total + (listing ? parseListingPrice(listing.price) : 0);
   }, 0);
 
@@ -98,7 +95,7 @@ export default function Home() {
   const falseReportProgress = Math.min(100, falseReportPercent);
   const currentStatusCopy = statusCopy(status, gameOverMessage);
   const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
-  const selectedListing = selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null;
+  const selectedListing = selectedTile?.listing ?? (selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null);
   const budgetSpent = startingBudget === null || budgetRemaining === null ? 0 : startingBudget - budgetRemaining;
   const budgetSpentPercent = startingBudget && startingBudget > 0
     ? Math.min(100, Math.round((budgetSpent / startingBudget) * 100))
@@ -264,7 +261,7 @@ export default function Home() {
       );
       const activeStartingBudget = startingBudget ?? calculateStartingBudget(activeBoard, listings);
       if (startingBudget === null) setStartingBudget(activeStartingBudget);
-      const listing = tile.listingId ? listings.get(tile.listingId) : null;
+      const listing = tile.listing ?? (tile.listingId ? listings.get(tile.listingId) : null);
       const listingPrice = listing ? parseListingPrice(listing.price) : 0;
       const currentBudgetRemaining = budgetRemaining ?? activeStartingBudget;
       const nextBudgetRemaining = currentBudgetRemaining - listingPrice;
