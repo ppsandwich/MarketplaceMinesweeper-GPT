@@ -17,6 +17,14 @@ const falseReportLimit = 3;
 const bannedMessage = "GAME OVER - you've been banned for making too many false reports.";
 const outOfCashMessage = "GAME OVER! You're out of cash.";
 
+interface PurchasedListing {
+  tileId: string;
+  title: string;
+  price: string;
+  amount: number;
+  runningTotal: number;
+}
+
 function listingMap(): Map<string, MarketplaceListing> {
   const map = new Map<string, MarketplaceListing>();
   Object.values(listingsBySuspicionCount).flat().forEach((listing) => map.set(listing.id, listing));
@@ -77,7 +85,9 @@ export default function Home() {
   const [recentlyReportedTileId, setRecentlyReportedTileId] = useState<string | null>(null);
   const [delayWinOverlay, setDelayWinOverlay] = useState(false);
   const [secretMode, setSecretMode] = useState(false);
+  const [startingBudget, setStartingBudget] = useState<number | null>(null);
   const [budgetRemaining, setBudgetRemaining] = useState<number | null>(null);
+  const [purchasedListings, setPurchasedListings] = useState<PurchasedListing[]>([]);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
@@ -90,6 +100,11 @@ export default function Home() {
   const currentStatusCopy = statusCopy(status, gameOverMessage);
   const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
   const selectedListing = selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null;
+  const budgetSpent = startingBudget === null || budgetRemaining === null ? 0 : startingBudget - budgetRemaining;
+  const budgetSpentPercent = startingBudget && startingBudget > 0
+    ? Math.min(100, Math.round((budgetSpent / startingBudget) * 100))
+    : 0;
+  const budgetProgress = budgetSpentPercent;
   const elapsedSeconds = startedAt
     ? Math.floor(((endedAt ?? now) - startedAt) / 1000)
     : 0;
@@ -151,7 +166,9 @@ export default function Home() {
       setGameOverMessage(null);
       setRecentlyReportedTileId(null);
       setDelayWinOverlay(false);
+      setStartingBudget(null);
       setBudgetRemaining(null);
+      setPurchasedListings([]);
     },
     [difficulty]
   );
@@ -168,8 +185,10 @@ export default function Home() {
         seed,
         safeFirstClickPosition: { x: tile.x, y: tile.y }
       });
+      const generatedBudget = calculateStartingBudget(generated, listings);
       setBoard(generated);
-      setBudgetRemaining(calculateStartingBudget(generated, listings));
+      setStartingBudget(generatedBudget);
+      setBudgetRemaining(generatedBudget);
       return generated;
     },
     [board, listings, mineCount, seed]
@@ -186,8 +205,10 @@ export default function Home() {
       seed,
       safeFirstClickPosition: { x: -1, y: -1 }
     });
+    const generatedBudget = calculateStartingBudget(generated, listings);
     setBoard(generated);
-    setBudgetRemaining(calculateStartingBudget(generated, listings));
+    setStartingBudget(generatedBudget);
+    setBudgetRemaining(generatedBudget);
     return generated;
   }, [board, listings, mineCount, seed]);
 
@@ -242,10 +263,27 @@ export default function Home() {
       const nextBoard = activeBoard.map((candidate) =>
         candidate.id === tileId ? { ...candidate, state: "opened" as const } : candidate
       );
-      const startingBudget = budgetRemaining ?? calculateStartingBudget(activeBoard, listings);
+      const activeStartingBudget = startingBudget ?? calculateStartingBudget(activeBoard, listings);
+      if (startingBudget === null) setStartingBudget(activeStartingBudget);
       const listing = tile.listingId ? listings.get(tile.listingId) : null;
       const listingPrice = listing ? parseListingPrice(listing.price) : 0;
-      const nextBudgetRemaining = startingBudget - listingPrice;
+      const currentBudgetRemaining = budgetRemaining ?? activeStartingBudget;
+      const nextBudgetRemaining = currentBudgetRemaining - listingPrice;
+      if (listing) {
+        setPurchasedListings((current) => {
+          const runningTotal = current.reduce((total, purchase) => total + purchase.amount, 0) + listingPrice;
+          return [
+            ...current,
+            {
+              tileId,
+              title: listing.title,
+              price: listing.price,
+              amount: listingPrice,
+              runningTotal
+            }
+          ];
+        });
+      }
       setBudgetRemaining(nextBudgetRemaining);
       if (nextBudgetRemaining <= 0) {
         setBoard(nextBoard);
@@ -265,7 +303,7 @@ export default function Home() {
         setDelayWinOverlay(false);
       }
     },
-    [board, budgetRemaining, ensureGeneratedBoard, listings, startClock, status]
+    [board, budgetRemaining, ensureGeneratedBoard, listings, startingBudget, startClock, status]
   );
 
   const toggleFlag = useCallback(
@@ -422,13 +460,25 @@ export default function Home() {
                   {falseReports}/{falseReportMax} false reports ({falseReportPercent}%)
                 </span>
               </span>
+              <span
+                className="relative inline-flex min-w-[260px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
+                aria-label={`${formatCurrency(budgetSpent)} of ${startingBudget === null ? "budget loading" : formatCurrency(startingBudget)} spent, ${budgetSpentPercent}%`}
+              >
+                <span
+                  className="absolute inset-y-0 left-0 bg-gum/30 transition-[width]"
+                  style={{ width: `${budgetProgress}%` }}
+                  aria-hidden="true"
+                />
+                <Wallet className="relative" size={16} />
+                <span className="relative">
+                  {startingBudget === null
+                    ? "Budget loading"
+                    : `${formatCurrency(budgetSpent)} of ${formatCurrency(startingBudget)} spent (${budgetSpentPercent}%)`}
+                </span>
+              </span>
               <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
                 <Timer size={16} />
                 {formatSeconds(elapsedSeconds)}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
-                <Wallet size={16} />
-                Budget {budgetRemaining === null ? "loading" : formatCurrency(budgetRemaining)}
               </span>
               <span className="rounded-md bg-paper px-3 py-2">Seed {seed || "loading"}</span>
             </div>
@@ -526,6 +576,36 @@ export default function Home() {
                 <span>Green tiles are correct numbers.</span>
               </div>
             </div>
+          </section>
+
+          <section className="receipt-panel rounded-md border-2 border-ink bg-white/85 p-4">
+            <div className="flex items-center justify-between gap-3 border-b border-dashed border-ink/30 pb-3">
+              <h2 className="text-lg font-black">Receipt</h2>
+              <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/65">
+                Total {formatCurrency(Math.max(0, budgetSpent))}
+              </span>
+            </div>
+            {purchasedListings.length === 0 ? (
+              <p className="mt-4 text-sm font-semibold text-ink/55">No purchases yet.</p>
+            ) : (
+              <ol className="mt-4 space-y-3">
+                {purchasedListings.map((purchase, index) => (
+                  <li
+                    key={`${purchase.tileId}-${index}`}
+                    className="receipt-row grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 rounded-sm border-b border-ink/10 pb-3 text-sm"
+                  >
+                    <span className="font-bold leading-5 text-ink">{purchase.title}</span>
+                    <span className="font-black text-gum">{purchase.price}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/45">
+                      Running total
+                    </span>
+                    <span className="text-right text-xs font-black text-ink/65">
+                      {formatCurrency(purchase.runningTotal)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
 
         </aside>
