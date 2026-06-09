@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import { AlertTriangle, Flag, Minus, Plus, ShieldCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { signalLabels } from "@/data/signalLabels";
@@ -14,7 +15,7 @@ interface ListingModalProps {
   onClose: () => void;
   onOpenTile: (tileId: string) => void;
   onToggleFlag: (tileId: string) => void;
-  onSetSuspicionCount: (tileId: string, value: number | null) => void;
+  onSetSuspicionCount: (tileId: string, value: number) => void;
   onReplay: () => void;
   gameOverMessage: string | null;
 }
@@ -31,6 +32,12 @@ function avatarLabel(type: MarketplaceListing["sellerAvatarType"]) {
   return labels[type];
 }
 
+function avatarAlt(type: MarketplaceListing["sellerAvatarType"], sellerName: string): string {
+  if (type === "face") return `${sellerName} profile photo`;
+  if (type === "blank") return `${sellerName} profile has no photo`;
+  return `${sellerName} profile photo is not a face`;
+}
+
 export function ListingModal({
   tile,
   listing,
@@ -42,14 +49,15 @@ export function ListingModal({
   onReplay,
   gameOverMessage
 }: ListingModalProps) {
-  const [triedOpenWithoutNote, setTriedOpenWithoutNote] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const isScammed = status === "lost" && tile.state === "exploded";
   const showGameOverOverlay = status === "lost" && (tile.state === "exploded" || gameOverMessage !== null);
+  const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
   const note = tile.playerSuspicionCount;
 
   useEffect(() => {
-    if (note !== null) setTriedOpenWithoutNote(false);
-  }, [note]);
+    setAvatarFailed(false);
+  }, [listing.id, listing.sellerAvatarFilename]);
 
   return (
     <div
@@ -87,8 +95,24 @@ export function ListingModal({
             </div>
 
             <div className="mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-notice text-sm font-black text-ink">
-                {avatarLabel(listing.sellerAvatarType)}
+              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink">
+                {listing.sellerAvatarFilename && !avatarFailed ? (
+                  <img
+                    src={`/listings/${listing.sellerAvatarFilename}`}
+                    alt={avatarAlt(listing.sellerAvatarType, listing.sellerName)}
+                    className="h-full w-full object-cover"
+                    onError={() => {
+                      if (process.env.NODE_ENV === "development") {
+                        console.warn(`Missing seller profile image: /listings/${listing.sellerAvatarFilename}`);
+                      }
+                      setAvatarFailed(true);
+                    }}
+                  />
+                ) : listing.sellerAvatarType === "blank" ? (
+                  <span className="text-[10px] leading-tight">No photo</span>
+                ) : (
+                  avatarLabel(listing.sellerAvatarType)
+                )}
               </div>
               <div>
                 <p className="font-bold">{listing.sellerName}</p>
@@ -100,37 +124,30 @@ export function ListingModal({
 
             <div className="mt-5 rounded-md border border-ink/15 bg-white/75 p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm font-bold text-ink/75">
-                  Suspicious details spotted <span className="text-gum">*</span>
-                </span>
+                <span className="text-sm font-bold text-ink/75">Suspicious details spotted</span>
                 <div className="flex items-center overflow-hidden rounded-md border border-ink/20 bg-paper">
                   <button
                     type="button"
                     aria-label="Decrease suspicious details note"
                     className="grid h-10 w-10 place-items-center border-r border-ink/15"
-                    onClick={() => onSetSuspicionCount(tile.id, Math.max(0, (note ?? 0) - 1))}
+                    onClick={() => onSetSuspicionCount(tile.id, Math.max(0, note - 1))}
                   >
                     <Minus size={16} />
                   </button>
                   <output className="grid h-10 min-w-12 place-items-center px-3 text-lg font-black">
-                    {note ?? "?"}
+                    {note}
                   </output>
                   <button
                     type="button"
                     aria-label="Increase suspicious details note"
                     className="grid h-10 w-10 place-items-center border-l border-ink/15"
-                    onClick={() => onSetSuspicionCount(tile.id, Math.min(8, (note ?? -1) + 1))}
+                    onClick={() => onSetSuspicionCount(tile.id, Math.min(8, note + 1))}
                   >
                     <Plus size={16} />
                   </button>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-ink/55">Required before marking safe. Your note only; the board will not confirm it during play.</p>
-              {triedOpenWithoutNote && (
-                <p className="mt-2 rounded-md border border-gum/35 bg-gum/10 px-3 py-2 text-sm font-bold text-gum">
-                  Enter how many suspicious details you spotted before pressing Looks safe.
-                </p>
-              )}
+              <p className="mt-2 text-xs text-ink/55">Your note only; the board will not confirm it during play.</p>
             </div>
 
             {status !== "playing" && tile.type === "safe" && (
@@ -147,13 +164,7 @@ export function ListingModal({
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
-                onClick={() => {
-                  if (note === null) {
-                    setTriedOpenWithoutNote(true);
-                    return;
-                  }
-                  onOpenTile(tile.id);
-                }}
+                onClick={() => onOpenTile(tile.id)}
                 disabled={status === "won" || (status === "lost" && tile.state !== "exploded")}
               >
                 <ShieldCheck size={18} />
@@ -161,11 +172,12 @@ export function ListingModal({
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-md border border-ink/20 bg-white px-4 py-3 font-black text-ink"
+                className="inline-flex items-center gap-2 rounded-md border border-ink/20 bg-white px-4 py-3 font-black text-ink disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35"
                 onClick={() => onToggleFlag(tile.id)}
+                disabled={reportDisabled}
               >
                 <Flag size={18} />
-                {tile.state === "flagged" ? "Unreport" : "Report listing"}
+                {tile.state === "false_report" ? "False report" : tile.state === "flagged" ? "Unreport" : "Report listing"}
               </button>
               <button type="button" className="rounded-md border border-ink/20 px-4 py-3 font-bold" onClick={onClose}>
                 Close

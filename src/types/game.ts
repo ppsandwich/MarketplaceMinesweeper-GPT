@@ -1,5 +1,5 @@
 export type TileType = "safe" | "mine";
-export type TileState = "hidden" | "opened" | "flagged" | "exploded" | "revealed_mine";
+export type TileState = "hidden" | "opened" | "flagged" | "false_report" | "exploded" | "revealed_mine";
 export type Difficulty = "easy" | "medium" | "hard";
 export type GameStatus = "idle" | "playing" | "won" | "lost";
 
@@ -16,5 +16,5 @@ export interface Tile {
   state: TileState;
   adjacentMineCount: number;
   listingId: string | null;
-  playerSuspicionCount: number | null;
+  playerSuspicionCount: number;
 }

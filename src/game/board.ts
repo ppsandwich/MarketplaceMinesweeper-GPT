@@ -74,7 +74,7 @@ export function generateBoard({
       state: "hidden",
       adjacentMineCount,
       listingId: listing.id,
-      playerSuspicionCount: null
+      playerSuspicionCount: 0
     };
   });
 }
@@ -91,7 +91,7 @@ export function createEmptyBoard(width: number, height: number): Tile[] {
       state: "hidden",
       adjacentMineCount: 0,
       listingId: null,
-      playerSuspicionCount: null
+      playerSuspicionCount: 0
     };
   });
 }

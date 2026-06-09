@@ -38,6 +38,7 @@ export interface MarketplaceListing {
   sellerName: string;
   sellerProfileAge: string;
   sellerAvatarType: "face" | "object" | "blank" | "logo" | "pet" | "ai_weird";
+  sellerAvatarFilename?: string | null;
   description: string;
   imageFilenames: string[];
   suspiciousSignals: SuspiciousSignal[];

@@ -1,5 +1,16 @@
 import type { MarketplaceListing } from "@/types/listing";
 
+const mismatchedSafePhotos = [
+  "dining-table-clue-0-1-01.png",
+  "switch-console-clue-1-11-01.png",
+  "espresso-machine-clue-2-9-01.png",
+  "tool-chest-clue-3-7-01.png",
+  "camera-lens-clue-4-5-01.png",
+  "lego-bin-clue-5-3-01.png",
+  "guitar-amp-clue-6-1-01.png",
+  "bike-rack-clue-7-1-01.png"
+];
+
 const scams = [
   [
     "bond-before-keys",
@@ -143,22 +154,35 @@ const scams = [
   ]
 ] as const;
 
-export const scamListings: MarketplaceListing[] = scams.map(([id, title, price, sellerName, detail]) => ({
-  id,
-  title,
-  price,
-  location: "VIC, maybe",
-  sellerName,
-  sellerProfileAge: "Joined this month",
-  sellerAvatarType: "logo",
-  description: detail,
-  imageFilenames: [`${id}-01.png`],
-  suspiciousSignals: [
-    "deposit_required",
-    "delivery_only",
-    "payment_outside_platform",
-    "urgent_sale_pressure"
-  ],
-  category: "misc",
-  isScamTemplate: true
-}));
+function sellerSlug(sellerName: string): string {
+  return sellerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export const scamListings: MarketplaceListing[] = scams.map(([id, title, price, sellerName, detail], index) => {
+  const imageFilenames = [`${id}-01.png`];
+
+  if (index % 2 === 0) {
+    imageFilenames.push(mismatchedSafePhotos[index % mismatchedSafePhotos.length]);
+  }
+
+  return {
+    id,
+    title,
+    price,
+    location: "VIC, maybe",
+    sellerName,
+    sellerProfileAge: "Joined this month",
+    sellerAvatarType: "logo",
+    sellerAvatarFilename: `profile-${sellerSlug(sellerName)}-non-face-01.png`,
+    description: detail,
+    imageFilenames,
+    suspiciousSignals: [
+      "deposit_required",
+      "delivery_only",
+      "payment_outside_platform",
+      "urgent_sale_pressure"
+    ],
+    category: "misc",
+    isScamTemplate: true
+  };
+});
