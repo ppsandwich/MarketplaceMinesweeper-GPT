@@ -180,7 +180,11 @@ export const scamListings: MarketplaceListing[] = scams.map(([id, title, price, 
       "deposit_required",
       "delivery_only",
       "payment_outside_platform",
-      "urgent_sale_pressure"
+      "urgent_sale_pressure",
+      "brand_new_profile",
+      "seller_no_face_photo",
+      "vague_location",
+      ...(imageFilenames.length > 1 ? ["image_description_mismatch" as const] : [])
     ],
     category: "misc",
     isScamTemplate: true

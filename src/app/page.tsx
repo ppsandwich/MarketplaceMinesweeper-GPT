@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, Pi, RotateCcw, Search, Timer, Trophy } from "lucide-react";
+import { Flag, Pi, RotateCcw, Search, Timer, Trophy, Wallet } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListingModal } from "@/components/ListingModal";
 import { listingsBySuspicionCount } from "@/data/listings";
@@ -15,6 +15,7 @@ import type { MarketplaceListing } from "@/types/listing";
 const difficultyKey = "marketplace-minesweeper:difficulty";
 const falseReportLimit = 3;
 const bannedMessage = "GAME OVER - you've been banned for making too many false reports.";
+const outOfCashMessage = "GAME OVER! You're out of cash.";
 
 function listingMap(): Map<string, MarketplaceListing> {
   const map = new Map<string, MarketplaceListing>();
@@ -27,6 +28,29 @@ function formatSeconds(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
   return `${minutes}:${seconds}`;
+}
+
+function parseListingPrice(price: string): number {
+  const numericPrice = price.match(/\d+(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?/);
+  return numericPrice ? Number(numericPrice[0].replaceAll(",", "")) : 0;
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0
+  }).format(Math.max(0, amount));
+}
+
+function calculateStartingBudget(board: Tile[], listings: Map<string, MarketplaceListing>): number {
+  const totalListingPrice = board.reduce((total, tile) => {
+    if (!tile.listingId) return total;
+    const listing = listings.get(tile.listingId);
+    return total + (listing ? parseListingPrice(listing.price) : 0);
+  }, 0);
+
+  return Math.round(totalListingPrice * 0.6);
 }
 
 function statusCopy(status: GameStatus, gameOverMessage: string | null): string | null {
@@ -53,6 +77,7 @@ export default function Home() {
   const [recentlyReportedTileId, setRecentlyReportedTileId] = useState<string | null>(null);
   const [delayWinOverlay, setDelayWinOverlay] = useState(false);
   const [secretMode, setSecretMode] = useState(false);
+  const [budgetRemaining, setBudgetRemaining] = useState<number | null>(null);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
@@ -126,6 +151,7 @@ export default function Home() {
       setGameOverMessage(null);
       setRecentlyReportedTileId(null);
       setDelayWinOverlay(false);
+      setBudgetRemaining(null);
     },
     [difficulty]
   );
@@ -143,9 +169,10 @@ export default function Home() {
         safeFirstClickPosition: { x: tile.x, y: tile.y }
       });
       setBoard(generated);
+      setBudgetRemaining(calculateStartingBudget(generated, listings));
       return generated;
     },
-    [board, mineCount, seed]
+    [board, listings, mineCount, seed]
   );
 
   const ensureGeneratedBoardForReport = useCallback((): Tile[] => {
@@ -160,8 +187,9 @@ export default function Home() {
       safeFirstClickPosition: { x: -1, y: -1 }
     });
     setBoard(generated);
+    setBudgetRemaining(calculateStartingBudget(generated, listings));
     return generated;
-  }, [board, mineCount, seed]);
+  }, [board, listings, mineCount, seed]);
 
   const inspectTile = useCallback(
     (tileId: string) => {
@@ -214,6 +242,20 @@ export default function Home() {
       const nextBoard = activeBoard.map((candidate) =>
         candidate.id === tileId ? { ...candidate, state: "opened" as const } : candidate
       );
+      const startingBudget = budgetRemaining ?? calculateStartingBudget(activeBoard, listings);
+      const listing = tile.listingId ? listings.get(tile.listingId) : null;
+      const listingPrice = listing ? parseListingPrice(listing.price) : 0;
+      const nextBudgetRemaining = startingBudget - listingPrice;
+      setBudgetRemaining(nextBudgetRemaining);
+      if (nextBudgetRemaining <= 0) {
+        setBoard(nextBoard);
+        setGameOverMessage(outOfCashMessage);
+        setStatus("lost");
+        setEndedAt(Date.now());
+        setSelectedTileId(tileId);
+        return;
+      }
+
       const won = nextBoard.every((candidate) => candidate.type === "mine" || candidate.state === "opened");
       setBoard(nextBoard);
       setSelectedTileId(null);
@@ -223,7 +265,7 @@ export default function Home() {
         setDelayWinOverlay(false);
       }
     },
-    [board, ensureGeneratedBoard, startClock, status]
+    [board, budgetRemaining, ensureGeneratedBoard, listings, startClock, status]
   );
 
   const toggleFlag = useCallback(
@@ -384,6 +426,10 @@ export default function Home() {
                 <Timer size={16} />
                 {formatSeconds(elapsedSeconds)}
               </span>
+              <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
+                <Wallet size={16} />
+                Budget {budgetRemaining === null ? "loading" : formatCurrency(budgetRemaining)}
+              </span>
               <span className="rounded-md bg-paper px-3 py-2">Seed {seed || "loading"}</span>
             </div>
             {currentStatusCopy && <p className="text-sm font-bold text-ink/65">{currentStatusCopy}</p>}
@@ -408,7 +454,7 @@ export default function Home() {
                     "relative flex min-h-0 min-w-0 items-center justify-center rounded-sm border text-center font-black transition",
                     "focus:z-10",
                     tile.state === "hidden" && "border-[#d4c9b9] bg-[#f8f5ee] hover:bg-[#fffaf0]",
-                    tile.state === "flagged" && "border-notice bg-notice text-ink",
+                    tile.state === "flagged" && "border-[#183f2a] bg-[#183f2a] text-[#b8f3c2]",
                     tile.state === "false_report" && "border-[#b42318] bg-[#b42318] text-white",
                     isCorrectOpenedSafeTile && "border-[#8fb18a] bg-[#dbe8d7] text-moss",
                     isIncorrectOpenedSafeTile && "border-[#d4aa35] bg-[#fff1b8] text-ink",
@@ -435,7 +481,7 @@ export default function Home() {
                   }}
                 >
                   <span className="absolute left-1 top-1 hidden h-1.5 w-1.5 rounded-full bg-ink/20 sm:block" />
-                  {tile.state === "flagged" && <span className="text-[10px] sm:text-xs">Reported</span>}
+                  {tile.state === "flagged" && <span className="px-1 text-[9px] leading-tight sm:text-xs">SCAM FOUND!</span>}
                   {tile.state === "false_report" && <span className="px-1 text-[9px] leading-tight sm:text-xs">FALSE REPORT</span>}
                   {tile.state === "opened" && note > 0 && <span className="text-xl sm:text-3xl">{note}</span>}
                   {isMineShown && <span className="text-[10px] sm:text-xs">SCAM</span>}

@@ -57,18 +57,30 @@ function isSuspiciousDescriptionSentence(sentence: string, listing: MarketplaceL
   const has = (signal: SuspiciousSignal) => signals.includes(signal);
 
   return (
-    (has("delivery_only") && /\b(delivery|courier|transport)\b/.test(normalized)) ||
-    (has("deposit_required") && /\b(deposit|bond|holding|hold payment|holding fee|small fee|fuel contribution)\b/.test(normalized)) ||
+    (has("delivery_only") && /\b(delivery|courier|transport|travel|sent|post|postage|shipping)\b/.test(normalized)) ||
+    (has("deposit_required") && /\b(deposit|bond|holding|hold payment|holding fee|small fee|fuel contribution|confirms your stop|confirms the spot)\b/.test(normalized)) ||
     (has("explicit_not_a_scam") && /not a scam/.test(normalized)) ||
     (has("payment_outside_platform") && /\b(transfer|bank transfer|direct transfer|payment clears|payment now)\b/.test(normalized)) ||
-    (has("urgent_sale_pressure") && /\b(today|tonight|quickly|need gone|before|flight|window closes)\b/.test(normalized)) ||
+    (has("urgent_sale_pressure") && /\b(today|tonight|quickly|need gone|before|flight|window closes|lots of messages|selling quickly)\b/.test(normalized)) ||
     (has("poor_grammar") && /is good item working nice/.test(normalized)) ||
     (has("too_many_emojis") && /🔥|😱|💸|🙏|amazing deal/.test(sentence)) ||
     (has("sob_story") && /\b(cousin|emergency|please be kind|estate|settlement)\b/.test(normalized)) ||
-    (has("refuses_inspection") && /\b(no inspections|inspection|cannot inspect|viewing address)\b/.test(normalized)) ||
+    (has("refuses_inspection") && /\b(no inspections|inspection|cannot inspect|viewing address|stored off-site|limited access|storage)\b/.test(normalized)) ||
     (has("duplicate_listing_language") && /excellent condition.*excellent condition|serious buyers only.*serious buyers only/.test(normalized)) ||
     (has("stock_photo") && /\b(catalogue|stock|supplier photos|box photo|boxed|packed already)\b/.test(normalized))
   );
+}
+
+function gameOverSupportText(isScammed: boolean, gameOverMessage: string | null): string {
+  if (isScammed) {
+    return "You sent a deposit to “Definitely Greg”, and you definitely won't hear from Greg again.";
+  }
+
+  if (gameOverMessage === "GAME OVER! You're out of cash.") {
+    return "The shopping budget is gone.";
+  }
+
+  return "Marketplace moderation has reviewed your enthusiasm and revoked your clipboard.";
 }
 
 function renderDescription(description: string, listing: MarketplaceListing, secretMode: boolean) {
@@ -273,7 +285,7 @@ export function ListingModal({
                   disabled={status === "won" || (status === "lost" && tile.state !== "exploded")}
                 >
                   <ShieldCheck size={18} />
-                  Looks safe
+                  Buy it
                 </button>
               )}
               <button
@@ -295,9 +307,7 @@ export function ListingModal({
               <AlertTriangle className="mx-auto mb-4" size={58} aria-hidden="true" />
               <h3 className="text-4xl font-black">{isScammed ? "SCAMMED! Game Over" : gameOverMessage}</h3>
               <p className="mx-auto mt-3 max-w-md text-lg font-semibold">
-                {isScammed
-                  ? "You sent a deposit to “Definitely Greg”, and you definitely won't hear from Greg again."
-                  : "Marketplace moderation has reviewed your enthusiasm and revoked your clipboard."}
+                {gameOverSupportText(isScammed, gameOverMessage)}
               </p>
               <button type="button" className="mt-6 rounded-md bg-white px-5 py-3 font-black text-[#8f1d16]" onClick={onReplay}>
                 Replay
