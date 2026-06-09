@@ -487,6 +487,25 @@ function makeListing(count: number, index: number): MarketplaceListing {
   return listing;
 }
 
+export const neutralListingTemplates: MarketplaceListing[] = bases.map((base, index) => {
+  const sellerName = sellerNames[index % sellerNames.length];
+
+  return {
+    id: `${base.slug}-template`,
+    title: base.title,
+    price: base.normalPrice,
+    location: "Brunswick, VIC",
+    sellerName,
+    sellerProfileAge: "Joined 2018",
+    sellerAvatarType: "face",
+    sellerAvatarFilename: faceAvatarFilename(sellerName),
+    description: base.baseDescription,
+    imageFilenames: [imageFilename(base.slug, 0, index % requiredCounts[0])],
+    suspiciousSignals: [],
+    category: base.category
+  };
+});
+
 export const listingsBySuspicionCount: Record<number, MarketplaceListing[]> = Object.fromEntries(
   Object.entries(requiredCounts).map(([count, amount]) => [
     Number(count),
