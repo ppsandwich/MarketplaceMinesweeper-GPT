@@ -22,7 +22,6 @@ interface PurchasedListing {
   title: string;
   price: string;
   amount: number;
-  runningTotal: number;
 }
 
 function listingMap(): Map<string, MarketplaceListing> {
@@ -271,15 +270,13 @@ export default function Home() {
       const nextBudgetRemaining = currentBudgetRemaining - listingPrice;
       if (listing) {
         setPurchasedListings((current) => {
-          const runningTotal = current.reduce((total, purchase) => total + purchase.amount, 0) + listingPrice;
           return [
             ...current,
             {
               tileId,
               title: listing.title,
               price: listing.price,
-              amount: listingPrice,
-              runningTotal
+              amount: listingPrice
             }
           ];
         });
@@ -592,16 +589,10 @@ export default function Home() {
                 {purchasedListings.map((purchase, index) => (
                   <li
                     key={`${purchase.tileId}-${index}`}
-                    className="receipt-row grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 rounded-sm border-b border-ink/10 pb-3 text-sm"
+                    className="receipt-row grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-sm border-b border-ink/10 pb-3 text-sm"
                   >
                     <span className="font-bold leading-5 text-ink">{purchase.title}</span>
                     <span className="font-black text-gum">{purchase.price}</span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/45">
-                      Running total
-                    </span>
-                    <span className="text-right text-xs font-black text-ink/65">
-                      {formatCurrency(purchase.runningTotal)}
-                    </span>
                   </li>
                 ))}
               </ol>
