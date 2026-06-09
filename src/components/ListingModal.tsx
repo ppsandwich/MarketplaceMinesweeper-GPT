@@ -5,7 +5,7 @@ import { AlertTriangle, Flag, Minus, Plus, ShieldCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { signalLabels } from "@/data/signalLabels";
 import type { GameStatus, Tile } from "@/types/game";
-import type { MarketplaceListing } from "@/types/listing";
+import type { MarketplaceListing, SuspiciousSignal } from "@/types/listing";
 import { ImageCarousel } from "@/components/ImageCarousel";
 
 interface ListingModalProps {
@@ -18,6 +18,7 @@ interface ListingModalProps {
   onSetSuspicionCount: (tileId: string, value: number) => void;
   onReplay: () => void;
   gameOverMessage: string | null;
+  secretMode: boolean;
 }
 
 function avatarLabel(type: MarketplaceListing["sellerAvatarType"]) {
@@ -38,6 +39,14 @@ function avatarAlt(type: MarketplaceListing["sellerAvatarType"], sellerName: str
   return `${sellerName} profile photo is not a face`;
 }
 
+function hasSignal(listing: MarketplaceListing, signals: SuspiciousSignal[]): boolean {
+  return signals.some((signal) => listing.suspiciousSignals.includes(signal));
+}
+
+function secretHighlight(active: boolean): string {
+  return active ? "ring-2 ring-gum bg-notice/25 shadow-[0_0_0_4px_rgba(245,211,107,0.28)]" : "";
+}
+
 export function ListingModal({
   tile,
   listing,
@@ -47,7 +56,8 @@ export function ListingModal({
   onToggleFlag,
   onSetSuspicionCount,
   onReplay,
-  gameOverMessage
+  gameOverMessage,
+  secretMode
 }: ListingModalProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
   const isScammed = status === "lost" && tile.state === "exploded";
@@ -55,6 +65,25 @@ export function ListingModal({
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
   const isAlreadyOpened = tile.state === "opened";
   const note = tile.playerSuspicionCount;
+  const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"]);
+  const priceHighlight = secretMode && hasSignal(listing, ["suspiciously_low_price"]);
+  const locationHighlight = secretMode && hasSignal(listing, ["vague_location"]);
+  const sellerHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo", "brand_new_profile", "unnatural_seller_name"]);
+  const descriptionHighlight =
+    secretMode &&
+    hasSignal(listing, [
+      "delivery_only",
+      "deposit_required",
+      "explicit_not_a_scam",
+      "payment_outside_platform",
+      "urgent_sale_pressure",
+      "poor_grammar",
+      "too_many_emojis",
+      "sob_story",
+      "refuses_inspection",
+      "duplicate_listing_language",
+      "stock_photo"
+    ]);
 
   useEffect(() => {
     setAvatarFailed(false);
@@ -72,7 +101,7 @@ export function ListingModal({
     >
       <section className="modal-panel relative max-h-[94vh] w-full overflow-y-auto rounded-t-lg bg-paper shadow-card sm:max-w-4xl sm:rounded-lg">
         <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className="bg-[#e8e0d2] p-4 sm:p-5">
+          <div className={["bg-[#e8e0d2] p-4 sm:p-5", secretHighlight(imageHighlight)].filter(Boolean).join(" ")}>
             <ImageCarousel filenames={listing.imageFilenames} title={listing.title} />
           </div>
 
@@ -91,11 +120,22 @@ export function ListingModal({
               <h2 id="listing-title" className="mt-2 text-2xl font-black leading-tight text-ink">
                 {listing.title}
               </h2>
-              <p className="mt-2 text-3xl font-black text-gum">{listing.price}</p>
-              <p className="mt-1 text-sm font-semibold text-ink/65">{listing.location}</p>
+              <p className={["mt-2 inline-block rounded-md px-1 text-3xl font-black text-gum", secretHighlight(priceHighlight)].filter(Boolean).join(" ")}>
+                {listing.price}
+              </p>
+              <p className={["mt-1 rounded-md text-sm font-semibold text-ink/65", secretHighlight(locationHighlight)].filter(Boolean).join(" ")}>
+                {listing.location}
+              </p>
             </div>
 
-            <div className="mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3">
+            <div
+              className={[
+                "mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3",
+                secretHighlight(sellerHighlight)
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink">
                 {listing.sellerAvatarFilename && !avatarFailed ? (
                   <img
@@ -121,7 +161,16 @@ export function ListingModal({
               </div>
             </div>
 
-            <p className="mt-5 whitespace-pre-line text-base leading-7 text-ink/85">{listing.description}</p>
+            <p
+              className={[
+                "mt-5 whitespace-pre-line rounded-md text-base leading-7 text-ink/85",
+                secretHighlight(descriptionHighlight)
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {listing.description}
+            </p>
 
             <div className="mt-5 rounded-md border border-ink/15 bg-white/75 p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
