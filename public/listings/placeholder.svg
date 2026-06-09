@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Unavailable marketplace listing photo</title>
+  <desc id="desc">A stylised missing photo placeholder for Marketplace Minesweeper.</desc>
+  <rect width="1024" height="1024" fill="#e8e0d2"/>
+  <rect x="116" y="132" width="792" height="760" rx="42" fill="#f8f5ee" stroke="#29231f" stroke-width="18"/>
+  <circle cx="298" cy="324" r="78" fill="#f5d36b" stroke="#29231f" stroke-width="14"/>
+  <path d="M170 758 388 520c23-25 62-23 83 4l98 125 62-73c22-26 62-26 84 1l141 171v82H170z" fill="#87a180" stroke="#29231f" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M268 226h488M268 864h488" stroke="#c85f46" stroke-width="22" stroke-linecap="round"/>
+  <text x="512" y="954" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#29231f">photo unavailable</text>
+</svg>
