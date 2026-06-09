@@ -1,0 +1,361 @@
+"use client";
+
+import { Flag, RotateCcw, Search, Timer, Trophy } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ListingModal } from "@/components/ListingModal";
+import { listingsBySuspicionCount } from "@/data/listings";
+import { scamListings } from "@/data/scamListings";
+import { validateListingsData } from "@/data/validateListings";
+import { generateBoard, createEmptyBoard } from "@/game/board";
+import { BOARD_HEIGHT, BOARD_WIDTH, DIFFICULTIES } from "@/game/difficulty";
+import { randomSeed } from "@/game/seededRandom";
+import type { Difficulty, GameStatus, Tile } from "@/types/game";
+import type { MarketplaceListing } from "@/types/listing";
+
+const difficultyKey = "marketplace-minesweeper:difficulty";
+
+function listingMap(): Map<string, MarketplaceListing> {
+  const map = new Map<string, MarketplaceListing>();
+  Object.values(listingsBySuspicionCount).flat().forEach((listing) => map.set(listing.id, listing));
+  scamListings.forEach((listing) => map.set(listing.id, listing));
+  return map;
+}
+
+function formatSeconds(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function statusCopy(status: GameStatus) {
+  if (status === "won") {
+    return "You cleared the board without buying a $200 console from Sofa Warehouse Kelvin.";
+  }
+  if (status === "lost") {
+    return "All scam listings are revealed. The paperwork is fictional, but the pain is educational.";
+  }
+  return "Inspect listings, write your own clue notes, and report the scams.";
+}
+
+export default function Home() {
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [status, setStatus] = useState<GameStatus>("idle");
+  const [board, setBoard] = useState<Tile[]>(() => createEmptyBoard(BOARD_WIDTH, BOARD_HEIGHT));
+  const [seed, setSeed] = useState("");
+  const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [endedAt, setEndedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  const listings = useMemo(() => listingMap(), []);
+  const mineCount = DIFFICULTIES[difficulty].mineCount;
+  const flagsUsed = board.filter((tile) => tile.state === "flagged").length;
+  const selectedTile = board.find((tile) => tile.id === selectedTileId) ?? null;
+  const selectedListing = selectedTile?.listingId ? listings.get(selectedTile.listingId) ?? null : null;
+  const elapsedSeconds = startedAt
+    ? Math.floor(((endedAt ?? now) - startedAt) / 1000)
+    : 0;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") validateListingsData();
+    const stored = window.localStorage.getItem(difficultyKey) as Difficulty | null;
+    if (stored && stored in DIFFICULTIES) setDifficulty(stored);
+    setSeed(randomSeed());
+  }, []);
+
+  useEffect(() => {
+    if (status !== "playing" || !startedAt || endedAt) return;
+
+    const interval = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(interval);
+  }, [endedAt, startedAt, status]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setSelectedTileId(null);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const startClock = useCallback(() => {
+    setStartedAt((current) => current ?? Date.now());
+    setStatus((current) => (current === "idle" ? "playing" : current));
+  }, []);
+
+  const resetGame = useCallback(
+    (nextDifficulty = difficulty) => {
+      setDifficulty(nextDifficulty);
+      window.localStorage.setItem(difficultyKey, nextDifficulty);
+      setStatus("idle");
+      setBoard(createEmptyBoard(BOARD_WIDTH, BOARD_HEIGHT));
+      setSeed(randomSeed());
+      setSelectedTileId(null);
+      setStartedAt(null);
+      setEndedAt(null);
+      setNow(Date.now());
+    },
+    [difficulty]
+  );
+
+  const ensureGeneratedBoard = useCallback(
+    (tile: Tile): Tile[] => {
+      const isGenerated = board.some((candidate) => candidate.listingId);
+      if (isGenerated) return board;
+
+      const generated = generateBoard({
+        width: BOARD_WIDTH,
+        height: BOARD_HEIGHT,
+        mineCount,
+        seed,
+        safeFirstClickPosition: { x: tile.x, y: tile.y }
+      });
+      setBoard(generated);
+      return generated;
+    },
+    [board, mineCount, seed]
+  );
+
+  const inspectTile = useCallback(
+    (tileId: string) => {
+      if (status === "won" || status === "lost") {
+        setSelectedTileId(tileId);
+        return;
+      }
+
+      const tile = board.find((candidate) => candidate.id === tileId);
+      if (!tile) return;
+      if (tile.state === "flagged") return;
+
+      startClock();
+      const activeBoard = ensureGeneratedBoard(tile);
+      const activeTile = activeBoard.find((candidate) => candidate.id === tileId);
+      setSelectedTileId(activeTile?.id ?? tileId);
+    },
+    [board, ensureGeneratedBoard, startClock, status]
+  );
+
+  const openTile = useCallback(
+    (tileId: string) => {
+      if (status === "won" || status === "lost") return;
+      const sourceTile = board.find((candidate) => candidate.id === tileId);
+      if (!sourceTile) return;
+
+      startClock();
+      const activeBoard = ensureGeneratedBoard(sourceTile);
+      const tile = activeBoard.find((candidate) => candidate.id === tileId);
+      if (!tile || tile.state === "flagged" || tile.state === "opened") return;
+
+      if (tile.type === "mine") {
+        setBoard(
+          activeBoard.map((candidate) => {
+            if (candidate.id === tileId) return { ...candidate, state: "exploded" };
+            if (candidate.type === "mine") return { ...candidate, state: "revealed_mine" };
+            return candidate;
+          })
+        );
+        setStatus("lost");
+        setEndedAt(Date.now());
+        setSelectedTileId(tileId);
+        return;
+      }
+
+      const nextBoard = activeBoard.map((candidate) =>
+        candidate.id === tileId ? { ...candidate, state: "opened" as const } : candidate
+      );
+      const won = nextBoard.every((candidate) => candidate.type === "mine" || candidate.state === "opened");
+      setBoard(nextBoard);
+      if (won) {
+        setStatus("won");
+        setEndedAt(Date.now());
+      }
+    },
+    [board, ensureGeneratedBoard, startClock, status]
+  );
+
+  const toggleFlag = useCallback(
+    (tileId: string) => {
+      if (status === "won" || status === "lost") return;
+
+      startClock();
+      setBoard((current) =>
+        current.map((tile) => {
+          if (tile.id !== tileId || tile.state === "opened") return tile;
+          return { ...tile, state: tile.state === "flagged" ? "hidden" : "flagged" };
+        })
+      );
+    },
+    [startClock, status]
+  );
+
+  const setSuspicionCount = useCallback((tileId: string, value: number | null) => {
+    setBoard((current) =>
+      current.map((tile) =>
+        tile.id === tileId ? { ...tile, playerSuspicionCount: value === null ? null : Math.max(0, Math.min(8, value)) } : tile
+      )
+    );
+  }, []);
+
+  function tileLabel(tile: Tile) {
+    const base = `listing tile, row ${tile.y + 1}, column ${tile.x + 1}`;
+    if (tile.state === "hidden") return `Unopened ${base}`;
+    if (tile.state === "flagged") return `Reported ${base}`;
+    if (tile.state === "opened") return `Opened ${base}${status === "playing" ? "" : `, ${tile.adjacentMineCount} adjacent scams`}`;
+    if (tile.state === "exploded") return `Scam listing opened, row ${tile.y + 1}, column ${tile.x + 1}`;
+    return `Revealed scam listing, row ${tile.y + 1}, column ${tile.x + 1}`;
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+      <header className="flex flex-col justify-between gap-4 border-b-2 border-ink pb-5 lg:flex-row lg:items-end">
+        <div>
+          <h1 className="text-4xl font-black leading-none sm:text-5xl">Marketplace Minesweeper</h1>
+          <p className="mt-3 max-w-2xl text-base font-semibold text-ink/70">
+            Every listing is a clue. Some are just crimes in a trench coat.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="grid gap-1 text-sm font-bold text-ink/70">
+            Difficulty
+            <select
+              className="h-11 rounded-md border-2 border-ink bg-white px-3 font-black text-ink"
+              value={difficulty}
+              onChange={(event) => resetGame(event.target.value as Difficulty)}
+            >
+              {Object.entries(DIFFICULTIES).map(([value, config]) => (
+                <option key={value} value={value}>
+                  {config.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="mt-auto inline-flex h-11 items-center gap-2 rounded-md bg-ink px-4 font-black text-paper"
+            onClick={() => resetGame()}
+          >
+            <RotateCcw size={18} />
+            New game
+          </button>
+        </div>
+      </header>
+
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border-2 border-ink bg-white/75 p-3">
+            <div className="flex flex-wrap gap-2 text-sm font-black">
+              <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
+                <Flag size={16} />
+                {flagsUsed}/{mineCount} reported
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
+                <Timer size={16} />
+                {formatSeconds(elapsedSeconds)}
+              </span>
+              <span className="rounded-md bg-paper px-3 py-2">Seed {seed || "loading"}</span>
+            </div>
+            <p className="text-sm font-bold text-ink/65">{statusCopy(status)}</p>
+          </div>
+
+          <div
+            className="tile-grid mx-auto grid aspect-square w-full max-w-[min(82vh,760px)] gap-1 rounded-md border-2 border-ink bg-ink p-1"
+            aria-label="Marketplace Minesweeper board"
+          >
+            {board.map((tile) => {
+              const note = tile.playerSuspicionCount;
+              const isMineShown = tile.state === "exploded" || tile.state === "revealed_mine";
+              return (
+                <button
+                  key={tile.id}
+                  type="button"
+                  aria-label={tileLabel(tile)}
+                  className={[
+                    "relative flex min-h-0 min-w-0 items-center justify-center rounded-sm border text-center font-black transition",
+                    "focus:z-10",
+                    tile.state === "hidden" && "border-[#d4c9b9] bg-[#f8f5ee] hover:bg-[#fffaf0]",
+                    tile.state === "flagged" && "border-notice bg-notice text-ink",
+                    tile.state === "opened" && "border-[#b9c7b5] bg-[#dbe8d7] text-moss",
+                    tile.state === "exploded" && "border-[#b42318] bg-[#b42318] text-white",
+                    tile.state === "revealed_mine" && "border-gum bg-gum text-white"
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => inspectTile(tile.id)}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    toggleFlag(tile.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key.toLowerCase() === "f") {
+                      event.preventDefault();
+                      toggleFlag(tile.id);
+                    }
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      inspectTile(tile.id);
+                    }
+                  }}
+                >
+                  <span className="absolute left-1 top-1 hidden h-1.5 w-1.5 rounded-full bg-ink/20 sm:block" />
+                  {tile.state === "flagged" && <span className="text-[10px] sm:text-xs">Reported</span>}
+                  {tile.state === "opened" && <span className="text-xl sm:text-3xl">{note ?? ""}</span>}
+                  {isMineShown && <span className="text-[10px] sm:text-xs">SCAM</span>}
+                  {tile.state === "hidden" && (
+                    <Search className="h-[42%] w-[42%] text-ink/35" aria-hidden="true" strokeWidth={2.6} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <aside className="space-y-4">
+          <section className="rounded-md border-2 border-ink bg-white/80 p-4">
+            <h2 className="text-lg font-black">How to Play</h2>
+            <p className="mt-3 text-sm leading-6 text-ink/75">
+              Each square is a marketplace listing. Some are scams. Open a listing and look for suspicious details:
+              weird prices, odd seller names, delivery-only nonsense, brand new profiles, photos that do not match,
+              and the classic declaration that nothing suspicious is happening.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-ink/75">
+              In a safe listing, suspicious details equal the number of scam listings touching it. Use the plus and
+              minus controls as your own notes, report likely scams, and open every safe listing.
+            </p>
+          </section>
+
+          <section className="rounded-md border-2 border-ink bg-[#fff7da] p-4">
+            <h2 className="inline-flex items-center gap-2 text-lg font-black">
+              <Trophy size={19} />
+              Status
+            </h2>
+            <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <dt className="font-bold text-ink/60">Mode</dt>
+              <dd className="text-right font-black">{DIFFICULTIES[difficulty].label}</dd>
+              <dt className="font-bold text-ink/60">Mines</dt>
+              <dd className="text-right font-black">{mineCount}</dd>
+              <dt className="font-bold text-ink/60">Opened</dt>
+              <dd className="text-right font-black">{board.filter((tile) => tile.state === "opened").length}</dd>
+              <dt className="font-bold text-ink/60">Result</dt>
+              <dd className="text-right font-black capitalize">{status}</dd>
+            </dl>
+          </section>
+        </aside>
+      </section>
+
+      {selectedTile && selectedListing && (
+        <ListingModal
+          tile={selectedTile}
+          listing={selectedListing}
+          status={status}
+          onClose={() => setSelectedTileId(null)}
+          onOpenTile={openTile}
+          onToggleFlag={toggleFlag}
+          onSetSuspicionCount={setSuspicionCount}
+          onReplay={() => resetGame()}
+        />
+      )}
+    </main>
+  );
+}
