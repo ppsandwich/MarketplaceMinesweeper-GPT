@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Flag, Minus, Plus, ShieldCheck, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { signalLabels } from "@/data/signalLabels";
 import type { GameStatus, Tile } from "@/types/game";
 import type { MarketplaceListing } from "@/types/listing";
@@ -15,6 +16,7 @@ interface ListingModalProps {
   onToggleFlag: (tileId: string) => void;
   onSetSuspicionCount: (tileId: string, value: number | null) => void;
   onReplay: () => void;
+  gameOverMessage: string | null;
 }
 
 function avatarLabel(type: MarketplaceListing["sellerAvatarType"]) {
@@ -37,10 +39,17 @@ export function ListingModal({
   onOpenTile,
   onToggleFlag,
   onSetSuspicionCount,
-  onReplay
+  onReplay,
+  gameOverMessage
 }: ListingModalProps) {
+  const [triedOpenWithoutNote, setTriedOpenWithoutNote] = useState(false);
   const isScammed = status === "lost" && tile.state === "exploded";
+  const showGameOverOverlay = status === "lost" && (tile.state === "exploded" || gameOverMessage !== null);
   const note = tile.playerSuspicionCount;
+
+  useEffect(() => {
+    if (note !== null) setTriedOpenWithoutNote(false);
+  }, [note]);
 
   return (
     <div
@@ -91,7 +100,9 @@ export function ListingModal({
 
             <div className="mt-5 rounded-md border border-ink/15 bg-white/75 p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm font-bold text-ink/75">Suspicious details spotted</span>
+                <span className="text-sm font-bold text-ink/75">
+                  Suspicious details spotted <span className="text-gum">*</span>
+                </span>
                 <div className="flex items-center overflow-hidden rounded-md border border-ink/20 bg-paper">
                   <button
                     type="button"
@@ -114,7 +125,12 @@ export function ListingModal({
                   </button>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-ink/55">Your note only. The board will not confirm it during play.</p>
+              <p className="mt-2 text-xs text-ink/55">Required before marking safe. Your note only; the board will not confirm it during play.</p>
+              {triedOpenWithoutNote && (
+                <p className="mt-2 rounded-md border border-gum/35 bg-gum/10 px-3 py-2 text-sm font-bold text-gum">
+                  Enter how many suspicious details you spotted before pressing Looks safe.
+                </p>
+              )}
             </div>
 
             {status !== "playing" && tile.type === "safe" && (
@@ -131,7 +147,13 @@ export function ListingModal({
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
-                onClick={() => onOpenTile(tile.id)}
+                onClick={() => {
+                  if (note === null) {
+                    setTriedOpenWithoutNote(true);
+                    return;
+                  }
+                  onOpenTile(tile.id);
+                }}
                 disabled={status === "won" || (status === "lost" && tile.state !== "exploded")}
               >
                 <ShieldCheck size={18} />
@@ -152,13 +174,15 @@ export function ListingModal({
           </div>
         </div>
 
-        {isScammed && (
+        {showGameOverOverlay && (
           <div className="absolute inset-0 grid place-items-center bg-[#b42318]/92 p-6 text-center text-white">
             <div>
               <AlertTriangle className="mx-auto mb-4" size={58} aria-hidden="true" />
-              <h3 className="text-4xl font-black">SCAMMED! Game Over</h3>
+              <h3 className="text-4xl font-black">{isScammed ? "SCAMMED! Game Over" : gameOverMessage}</h3>
               <p className="mx-auto mt-3 max-w-md text-lg font-semibold">
-                You sent a deposit to “Definitely Greg” and the couch has entered witness protection.
+                {isScammed
+                  ? "You sent a deposit to “Definitely Greg” and the couch has entered witness protection."
+                  : "Marketplace moderation has reviewed your enthusiasm and revoked your clipboard."}
               </p>
               <button type="button" className="mt-6 rounded-md bg-white px-5 py-3 font-black text-[#8f1d16]" onClick={onReplay}>
                 Replay

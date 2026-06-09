@@ -13,6 +13,8 @@ import type { Difficulty, GameStatus, Tile } from "@/types/game";
 import type { MarketplaceListing } from "@/types/listing";
 
 const difficultyKey = "marketplace-minesweeper:difficulty";
+const falseReportLimit = 3;
+const bannedMessage = "GAME OVER - you've been banned for making too many false reports.";
 
 function listingMap(): Map<string, MarketplaceListing> {
   const map = new Map<string, MarketplaceListing>();
@@ -27,12 +29,12 @@ function formatSeconds(totalSeconds: number) {
   return `${minutes}:${seconds}`;
 }
 
-function statusCopy(status: GameStatus) {
+function statusCopy(status: GameStatus, gameOverMessage: string | null) {
   if (status === "won") {
     return "You cleared the board without buying a $200 console from Sofa Warehouse Kelvin.";
   }
   if (status === "lost") {
-    return "All scam listings are revealed. The paperwork is fictional, but the pain is educational.";
+    return gameOverMessage ?? "All scam listings are revealed. The paperwork is fictional, but the pain is educational.";
   }
   return "Inspect listings, write your own clue notes, and report the scams.";
 }
@@ -46,6 +48,9 @@ export default function Home() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [endedAt, setEndedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [falseReports, setFalseReports] = useState(0);
+  const [reportWarning, setReportWarning] = useState<string | null>(null);
+  const [gameOverMessage, setGameOverMessage] = useState<string | null>(null);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
@@ -95,6 +100,9 @@ export default function Home() {
       setStartedAt(null);
       setEndedAt(null);
       setNow(Date.now());
+      setFalseReports(0);
+      setReportWarning(null);
+      setGameOverMessage(null);
     },
     [difficulty]
   );
@@ -166,6 +174,7 @@ export default function Home() {
       );
       const won = nextBoard.every((candidate) => candidate.type === "mine" || candidate.state === "opened");
       setBoard(nextBoard);
+      setSelectedTileId(null);
       if (won) {
         setStatus("won");
         setEndedAt(Date.now());
@@ -178,15 +187,59 @@ export default function Home() {
     (tileId: string) => {
       if (status === "won" || status === "lost") return;
 
+      const sourceTile = board.find((candidate) => candidate.id === tileId);
+      if (!sourceTile || sourceTile.state === "opened") return;
+
       startClock();
-      setBoard((current) =>
-        current.map((tile) => {
+      const activeBoard = ensureGeneratedBoard(sourceTile);
+      const activeTile = activeBoard.find((candidate) => candidate.id === tileId);
+      if (!activeTile || activeTile.state === "opened") return;
+
+      if (activeTile.state === "flagged") {
+        setBoard((current) =>
+          current.map((tile) => (tile.id === tileId ? { ...tile, state: "hidden" as const } : tile))
+        );
+        setReportWarning(null);
+        return;
+      }
+
+      if (activeTile.type === "safe") {
+        const nextFalseReports = falseReports + 1;
+
+        if (nextFalseReports >= falseReportLimit) {
+          setFalseReports(nextFalseReports);
+          setGameOverMessage(bannedMessage);
+          setReportWarning(null);
+          setStatus("lost");
+          setEndedAt(Date.now());
+          setSelectedTileId(tileId);
+          setBoard(
+            activeBoard.map((tile) => {
+              if (tile.type === "mine") return { ...tile, state: "revealed_mine" };
+              return tile;
+            })
+          );
+          return;
+        }
+
+        setFalseReports(nextFalseReports);
+        setReportWarning(
+          `False report warning ${nextFalseReports}/2. The third false report is game over.`
+        );
+        setSelectedTileId(null);
+        return;
+      }
+
+      setReportWarning(null);
+      setSelectedTileId(null);
+      setBoard(
+        activeBoard.map((tile) => {
           if (tile.id !== tileId || tile.state === "opened") return tile;
-          return { ...tile, state: tile.state === "flagged" ? "hidden" : "flagged" };
+          return { ...tile, state: "flagged" as const };
         })
       );
     },
-    [startClock, status]
+    [board, ensureGeneratedBoard, falseReports, startClock, status]
   );
 
   const setSuspicionCount = useCallback((tileId: string, value: number | null) => {
@@ -256,8 +309,13 @@ export default function Home() {
               </span>
               <span className="rounded-md bg-paper px-3 py-2">Seed {seed || "loading"}</span>
             </div>
-            <p className="text-sm font-bold text-ink/65">{statusCopy(status)}</p>
+            <p className="text-sm font-bold text-ink/65">{statusCopy(status, gameOverMessage)}</p>
           </div>
+          {reportWarning && status !== "lost" && (
+            <div className="mb-3 rounded-md border-2 border-gum bg-gum/10 p-3 text-sm font-black text-gum">
+              {reportWarning}
+            </div>
+          )}
 
           <div
             className="tile-grid mx-auto grid aspect-square w-full max-w-[min(82vh,760px)] gap-1 rounded-md border-2 border-ink bg-ink p-1"
@@ -337,6 +395,8 @@ export default function Home() {
               <dd className="text-right font-black">{mineCount}</dd>
               <dt className="font-bold text-ink/60">Opened</dt>
               <dd className="text-right font-black">{board.filter((tile) => tile.state === "opened").length}</dd>
+              <dt className="font-bold text-ink/60">False reports</dt>
+              <dd className="text-right font-black">{falseReports}/2 warnings</dd>
               <dt className="font-bold text-ink/60">Result</dt>
               <dd className="text-right font-black capitalize">{status}</dd>
             </dl>
@@ -354,6 +414,7 @@ export default function Home() {
           onToggleFlag={toggleFlag}
           onSetSuspicionCount={setSuspicionCount}
           onReplay={() => resetGame()}
+          gameOverMessage={gameOverMessage}
         />
       )}
     </main>
