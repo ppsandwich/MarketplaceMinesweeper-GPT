@@ -65,6 +65,7 @@ export function ListingModal({
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
   const isAlreadyOpened = tile.state === "opened";
   const note = tile.playerSuspicionCount;
+  const secretScamListing = secretMode && tile.type === "mine";
   const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"]);
   const priceHighlight = secretMode && hasSignal(listing, ["suspiciously_low_price"]);
   const locationHighlight = secretMode && hasSignal(listing, ["vague_location"]);
@@ -99,7 +100,14 @@ export function ListingModal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section className="modal-panel relative max-h-[94vh] w-full overflow-y-auto rounded-t-lg bg-paper shadow-card sm:max-w-4xl sm:rounded-lg">
+      <section
+        className={[
+          "modal-panel relative max-h-[94vh] w-full overflow-y-auto rounded-t-lg bg-paper shadow-card sm:max-w-4xl sm:rounded-lg",
+          secretScamListing && "border-4 border-gum bg-[#ffe7df] shadow-[0_0_0_8px_rgba(200,95,70,0.28)]"
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <div className={["bg-[#e8e0d2] p-4 sm:p-5", secretHighlight(imageHighlight)].filter(Boolean).join(" ")}>
             <ImageCarousel filenames={listing.imageFilenames} title={listing.title} />
