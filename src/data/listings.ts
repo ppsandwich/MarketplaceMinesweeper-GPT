@@ -601,6 +601,78 @@ const bases: Array<{
     cheapPrice: "$22",
     category: "tools",
     baseDescription: "Tile cutter with scoring wheel, guide rail, and the confidence of a renovated bathroom."
+  },
+  {
+    slug: "folding-kayak",
+    title: "Folding recreational kayak",
+    normalPrice: "$340",
+    cheapPrice: "$78",
+    category: "vehicles",
+    baseDescription: "Light kayak with paddle, carry bag, and several dry weekends still implied."
+  },
+  {
+    slug: "banjo",
+    title: "Five-string banjo",
+    normalPrice: "$230",
+    cheapPrice: "$52",
+    category: "musical_instruments",
+    baseDescription: "Banjo with case and strap, bright enough to make quiet rooms reconsider themselves."
+  },
+  {
+    slug: "film-camera",
+    title: "Manual 35mm film camera",
+    normalPrice: "$210",
+    cheapPrice: "$48",
+    category: "collectibles",
+    baseDescription: "Film camera with lens, strap, and shutter click that sounds more expensive than it is."
+  },
+  {
+    slug: "flight-stick",
+    title: "USB flight stick controller",
+    normalPrice: "$95",
+    cheapPrice: "$20",
+    category: "gaming",
+    baseDescription: "Flight stick with throttle slider and buttons labelled for missions nobody completed."
+  },
+  {
+    slug: "butchers-block",
+    title: "Kitchen butcher block trolley",
+    normalPrice: "$180",
+    cheapPrice: "$40",
+    category: "furniture",
+    baseDescription: "Rolling kitchen trolley with timber top, shelves, and one wheel that enjoys being noticed."
+  },
+  {
+    slug: "photo-printer",
+    title: "Compact photo printer",
+    normalPrice: "$125",
+    cheapPrice: "$28",
+    category: "electronics",
+    baseDescription: "Photo printer with power cable and sample paper, last used for fridge-door diplomacy."
+  },
+  {
+    slug: "bread-maker",
+    title: "Automatic bread maker",
+    normalPrice: "$110",
+    cheapPrice: "$24",
+    category: "appliances",
+    baseDescription: "Bread maker with pan and paddle, capable of making the kitchen smell like intent."
+  },
+  {
+    slug: "air-compressor",
+    title: "Small workshop air compressor",
+    normalPrice: "$195",
+    cheapPrice: "$44",
+    category: "tools",
+    baseDescription: "Compressor with hose and gauge, used for tyres, tools, and one very clean keyboard."
+  },
+  {
+    slug: "roof-pod",
+    title: "Slimline roof storage pod",
+    normalPrice: "$260",
+    cheapPrice: "$60",
+    category: "vehicles",
+    baseDescription: "Narrow roof pod with mounts and key, ready for skis, camping gear, or overpacking."
   }
 ];
 
@@ -791,6 +863,55 @@ export const neutralListingTemplates: MarketplaceListing[] = bases.map((base, in
     category: base.category
   };
 });
+
+export function listingFromTemplateWithSuspicionCount(
+  template: MarketplaceListing,
+  count: number,
+  index: number,
+  allTemplates: MarketplaceListing[] = neutralListingTemplates
+): MarketplaceListing {
+  const signals = chooseSignals(count, index);
+  const listing: MarketplaceListing = {
+    ...template,
+    id: `${template.id}-clue-${count}-${index}`,
+    imageFilenames: template.imageFilenames.slice(0, 1),
+    suspiciousSignals: signals,
+    isScamTemplate: false
+  };
+
+  for (const signal of signals) {
+    const patch = suspiciousText(signal);
+    listing.title = patch.title ? `${listing.title} - ${patch.title}` : listing.title;
+    listing.description = patch.description ? `${listing.description} ${patch.description}` : listing.description;
+    listing.price = patch.price ?? listing.price;
+    listing.location = patch.location ?? listing.location;
+    listing.sellerName = patch.sellerName ?? listing.sellerName;
+    listing.sellerProfileAge = patch.sellerProfileAge ?? listing.sellerProfileAge;
+    listing.sellerAvatarType = patch.sellerAvatarType ?? listing.sellerAvatarType;
+    listing.sellerAvatarFilename = patch.sellerAvatarFilename ?? listing.sellerAvatarFilename;
+  }
+
+  if (signals.includes("seller_no_face_photo")) {
+    listing.sellerAvatarFilename = nonFaceAvatarFilenames[(count + index) % nonFaceAvatarFilenames.length];
+  }
+
+  const alternateImages = allTemplates
+    .filter((candidate) => candidate.id !== template.id && candidate.imageFilenames.length > 0)
+    .flatMap((candidate) => candidate.imageFilenames);
+
+  if (signals.includes("image_description_mismatch")) {
+    const image = alternateImages[(count + index) % alternateImages.length] ?? listing.imageFilenames[0];
+    listing.imageFilenames = [listing.imageFilenames[0], image];
+  }
+
+  if (signals.includes("multiple_items_in_photos")) {
+    const firstImage = alternateImages[(count + index) % alternateImages.length] ?? listing.imageFilenames[0];
+    const secondImage = alternateImages[(count + index + 7) % alternateImages.length] ?? firstImage;
+    listing.imageFilenames = [listing.imageFilenames[0], firstImage, secondImage];
+  }
+
+  return listing;
+}
 
 export const listingsBySuspicionCount: Record<number, MarketplaceListing[]> = Object.fromEntries(
   Object.entries(requiredCounts).map(([count, amount]) => [
