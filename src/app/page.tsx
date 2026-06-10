@@ -408,13 +408,14 @@ export default function Home() {
 
   const inspectTile = useCallback(
     (tileId: string) => {
+      const tile = board.find((candidate) => candidate.id === tileId);
+      if (!tile) return;
+      if (tile.state === "opened" || tile.state === "flagged" || tile.state === "false_report") return;
+
       if (status === "won" || status === "lost") {
         setSelectedTileId(tileId);
         return;
       }
-
-      const tile = board.find((candidate) => candidate.id === tileId);
-      if (!tile) return;
 
       startClock();
       const activeBoard = ensureGeneratedBoard(tile);
@@ -518,12 +519,7 @@ export default function Home() {
       if (!activeTile || activeTile.state === "opened") return;
       if (activeTile.state === "false_report") return;
 
-      if (activeTile.state === "flagged") {
-        setBoard((current) =>
-          current.map((tile) => (tile.id === tileId ? { ...tile, state: "hidden" as const } : tile))
-        );
-        return;
-      }
+      if (activeTile.state === "flagged") return;
 
       if (activeTile.type === "safe") {
         const nextFalseReports = falseReports + 1;
@@ -677,8 +673,8 @@ export default function Home() {
       </p>
       <div className="mt-4 grid gap-2 border-t border-ink/15 pt-4 text-sm font-bold text-ink/75">
         <div className="flex items-center gap-2">
-          <span className="h-5 w-5 rounded-sm border border-[#d4aa35] bg-[#fff1b8]" aria-hidden="true" />
-          <span>Yellow tiles are incorrect numbers.</span>
+          <span className="grid h-5 w-5 place-items-center rounded-sm border border-[#8d8d8d] bg-[#d8d8d8] text-xs font-black leading-none" aria-hidden="true">X</span>
+          <span>Grey X tiles are incorrect numbers.</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-5 w-5 rounded-sm border border-[#8fb18a] bg-[#dbe8d7]" aria-hidden="true" />
@@ -745,13 +741,13 @@ export default function Home() {
                   type="button"
                   aria-label={tileLabel(tile)}
                   className={[
-                    "relative flex min-h-0 min-w-0 items-center justify-center rounded-sm border text-center font-black transition",
+                    "relative flex min-h-0 min-w-0 items-center justify-center rounded-sm border text-center font-black transition disabled:cursor-not-allowed",
                     "focus:z-10",
                     tile.state === "hidden" && "border-[#d4c9b9] bg-[#f8f5ee] hover:bg-[#fffaf0]",
                     tile.state === "flagged" && "border-[#183f2a] bg-[#183f2a] text-[#b8f3c2]",
                     tile.state === "false_report" && "border-[#b42318] bg-[#b42318] text-white",
                     isCorrectOpenedSafeTile && "border-[#8fb18a] bg-[#dbe8d7] text-moss",
-                    isIncorrectOpenedSafeTile && "border-[#d4aa35] bg-[#fff1b8] text-ink",
+                    isIncorrectOpenedSafeTile && "border-[#8d8d8d] bg-[#d8d8d8] text-ink",
                     tile.state === "exploded" && "border-[#b42318] bg-[#b42318] text-white",
                     tile.state === "revealed_mine" && "border-gum bg-gum text-white",
                     (recentlyReportedTileId === tile.id || recentlyFalseReportedTileId === tile.id) && "tile-report-success"
@@ -759,6 +755,7 @@ export default function Home() {
                     .filter(Boolean)
                     .join(" ")}
                   onClick={() => inspectTile(tile.id)}
+                  disabled={tile.state === "opened" || tile.state === "flagged" || tile.state === "false_report"}
                   onContextMenu={(event) => {
                     event.preventDefault();
                     toggleFlag(tile.id);
@@ -777,7 +774,8 @@ export default function Home() {
                   <span className="absolute left-1 top-1 hidden h-1.5 w-1.5 rounded-full bg-ink/20 sm:block" />
                   {tile.state === "flagged" && <span className="px-1 text-[9px] leading-tight sm:text-xs">SCAM FOUND!</span>}
                   {tile.state === "false_report" && <span className="px-1 text-[9px] leading-tight sm:text-xs">FALSE REPORT</span>}
-                  {tile.state === "opened" && note > 0 && <span className="text-xl sm:text-3xl">{note}</span>}
+                  {isIncorrectOpenedSafeTile && <span className="text-4xl leading-none sm:text-6xl">X</span>}
+                  {isCorrectOpenedSafeTile && note > 0 && <span className="text-xl sm:text-3xl">{note}</span>}
                   {isMineShown && <span className="text-[10px] sm:text-xs">SCAM</span>}
                   {tile.state === "hidden" && (
                     <Search className="h-[42%] w-[42%] text-ink/35" aria-hidden="true" strokeWidth={2.6} />
