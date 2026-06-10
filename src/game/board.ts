@@ -1,6 +1,6 @@
 import { adjacentPositions } from "@/game/adjacency";
 import { seededRandom } from "@/game/seededRandom";
-import { listingsBySuspicionCount, neutralListingTemplates } from "@/data/listings";
+import { listingFromTemplateWithSuspicionCount, neutralListingTemplates } from "@/data/listings";
 import type { Position, Tile } from "@/types/game";
 import type { MarketplaceListing, SuspiciousSignal } from "@/types/listing";
 
@@ -140,8 +140,7 @@ export function generateBoard({
 
     if (hasImpossibleSafeListing) continue;
 
-    const usedSafeListings = new Set<string>();
-    const usedScamTemplates = new Set<string>();
+    const usedListingTemplates = new Set<string>();
 
     return Array.from({ length: width * height }, (_, index): Tile => {
       const x = index % width;
@@ -152,12 +151,17 @@ export function generateBoard({
 
       const listing = isMine
         ? scamListingFromTemplate(
-            pickUnused(neutralListingTemplates, usedScamTemplates, random),
+            pickUnused(neutralListingTemplates, usedListingTemplates, random),
             neutralListingTemplates,
             index,
             random
           )
-        : pickUnused(listingsBySuspicionCount[adjacentMineCount] ?? [], usedSafeListings, random);
+        : listingFromTemplateWithSuspicionCount(
+            pickUnused(neutralListingTemplates, usedListingTemplates, random),
+            adjacentMineCount,
+            index,
+            neutralListingTemplates
+          );
 
       return {
         id,
