@@ -4,8 +4,7 @@ const requiredCounts: Record<number, number> = {
   0: 12,
   1: 12,
   2: 12,
-  3: 12,
-  4: 8
+  3: 12
 };
 
 const sectionSignalChoices: Array<{
