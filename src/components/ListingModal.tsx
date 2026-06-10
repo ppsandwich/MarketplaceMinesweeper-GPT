@@ -318,9 +318,18 @@ export function ListingModal({
               <p className="mx-auto mt-3 max-w-md text-lg font-semibold">
                 {gameOverSupportText(isScammed, gameOverMessage)}
               </p>
-              <button type="button" className="mt-6 rounded-md bg-white px-5 py-3 font-black text-[#8f1d16]" onClick={onReplay}>
-                Replay
-              </button>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button type="button" className="rounded-md bg-white px-5 py-3 font-black text-[#8f1d16]" onClick={onReplay}>
+                  Replay
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border-2 border-white bg-transparent px-5 py-3 font-black text-white"
+                  onClick={onClose}
+                >
+                  Show Board
+                </button>
+              </div>
             </div>
           </div>
         )}
