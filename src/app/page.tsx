@@ -535,6 +535,106 @@ export default function Home() {
     return `Revealed scam listing, row ${tile.y + 1}, column ${tile.x + 1}`;
   }
 
+  const indicatorBars = (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border-2 border-ink bg-white/75 p-3">
+      <div className="flex flex-wrap gap-2 text-sm font-black">
+        <span
+          className="relative inline-flex min-w-[190px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
+          aria-label={`${flagsUsed} of ${mineCount} scams reported, ${reportPercent}%`}
+        >
+          <span
+            className="absolute inset-y-0 left-0 bg-moss/30 transition-[width]"
+            style={{ width: `${reportProgress}%` }}
+            aria-hidden="true"
+          />
+          <Flag className="relative" size={16} />
+          <span className="relative">
+            {flagsUsed}/{mineCount} reported ({reportPercent}%)
+          </span>
+        </span>
+        <span
+          className="relative inline-flex min-w-[220px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
+          aria-label={`${falseReports} of ${falseReportMax} false reports, ${falseReportPercent}%`}
+        >
+          <span
+            className="absolute inset-y-0 left-0 bg-gum/30 transition-[width]"
+            style={{ width: `${falseReportProgress}%` }}
+            aria-hidden="true"
+          />
+          <Flag className="relative" size={16} />
+          <span className="relative">
+            {falseReports}/{falseReportMax} false reports ({falseReportPercent}%)
+          </span>
+        </span>
+        <span
+          className="relative inline-flex min-w-[260px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
+          aria-label={`${formatCurrency(budgetSpent)} of ${startingBudget === null ? "budget loading" : formatCurrency(startingBudget)} spent, ${budgetSpentPercent}%`}
+        >
+          <span
+            className="absolute inset-y-0 left-0 bg-gum/30 transition-[width]"
+            style={{ width: `${budgetProgress}%` }}
+            aria-hidden="true"
+          />
+          <Wallet className="relative" size={16} />
+          <span className="relative">
+            {startingBudget === null
+              ? "Budget loading"
+              : `${formatCurrency(budgetSpent)} of ${formatCurrency(startingBudget)} spent (${budgetSpentPercent}%)`}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
+          <Timer size={16} />
+          {formatSeconds(elapsedSeconds)}
+        </span>
+      </div>
+      {currentStatusCopy && <p className="text-sm font-bold text-ink/65">{currentStatusCopy}</p>}
+    </div>
+  );
+
+  const howToPlayContent = (
+    <>
+      <p className="mt-3 text-sm leading-6 text-ink/75">
+        Each tile is a marketplace listing. Some are scams. Open one and look for suspicious details.
+      </p>
+      <p className="mt-3 text-sm leading-6 text-ink/75">
+        Scams have four or more suspicious details.
+      </p>
+      <p className="mt-3 text-sm leading-6 text-ink/75">
+        In a safe listing, suspicious details equal the number of scam listings touching the tile.
+      </p>
+      <p className="mt-3 text-sm leading-6 text-ink/75">
+        You win the game by reporting every scam.
+      </p>
+      <p className="mt-3 text-sm leading-6 text-ink/75">
+        You lose the game if you buy a scam item, run out of money, or falsely report three listings.
+      </p>
+      <div className="mt-4 grid gap-2 border-t border-ink/15 pt-4 text-sm font-bold text-ink/75">
+        <div className="flex items-center gap-2">
+          <span className="h-5 w-5 rounded-sm border border-[#d4aa35] bg-[#fff1b8]" aria-hidden="true" />
+          <span>Yellow tiles are incorrect numbers.</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-5 w-5 rounded-sm border border-[#8fb18a] bg-[#dbe8d7]" aria-hidden="true" />
+          <span>Green tiles are correct numbers.</span>
+        </div>
+      </div>
+    </>
+  );
+
+  const mobileHowToPlay = (
+    <details className="mb-3 rounded-md border-2 border-ink bg-white/80 p-4 lg:hidden">
+      <summary className="cursor-pointer text-lg font-black">How to Play</summary>
+      {howToPlayContent}
+    </details>
+  );
+
+  const desktopHowToPlay = (
+    <section className="hidden rounded-md border-2 border-ink bg-white/80 p-4 lg:block">
+      <h2 className="text-lg font-black">How to Play</h2>
+      {howToPlayContent}
+    </section>
+  );
+
   return (
     <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
       <header className="flex flex-col justify-between gap-4 border-b-2 border-ink pb-5 lg:flex-row lg:items-end">
@@ -559,59 +659,8 @@ export default function Home() {
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
         <div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border-2 border-ink bg-white/75 p-3">
-            <div className="flex flex-wrap gap-2 text-sm font-black">
-              <span
-                className="relative inline-flex min-w-[190px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
-                aria-label={`${flagsUsed} of ${mineCount} scams reported, ${reportPercent}%`}
-              >
-                <span
-                  className="absolute inset-y-0 left-0 bg-moss/30 transition-[width]"
-                  style={{ width: `${reportProgress}%` }}
-                  aria-hidden="true"
-                />
-                <Flag className="relative" size={16} />
-                <span className="relative">
-                  {flagsUsed}/{mineCount} reported ({reportPercent}%)
-                </span>
-              </span>
-              <span
-                className="relative inline-flex min-w-[220px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
-                aria-label={`${falseReports} of ${falseReportMax} false reports, ${falseReportPercent}%`}
-              >
-                <span
-                  className="absolute inset-y-0 left-0 bg-gum/30 transition-[width]"
-                  style={{ width: `${falseReportProgress}%` }}
-                  aria-hidden="true"
-                />
-                <Flag className="relative" size={16} />
-                <span className="relative">
-                  {falseReports}/{falseReportMax} false reports ({falseReportPercent}%)
-                </span>
-              </span>
-              <span
-                className="relative inline-flex min-w-[260px] items-center gap-2 overflow-hidden rounded-md border border-ink/15 bg-paper px-3 py-2"
-                aria-label={`${formatCurrency(budgetSpent)} of ${startingBudget === null ? "budget loading" : formatCurrency(startingBudget)} spent, ${budgetSpentPercent}%`}
-              >
-                <span
-                  className="absolute inset-y-0 left-0 bg-gum/30 transition-[width]"
-                  style={{ width: `${budgetProgress}%` }}
-                  aria-hidden="true"
-                />
-                <Wallet className="relative" size={16} />
-                <span className="relative">
-                  {startingBudget === null
-                    ? "Budget loading"
-                    : `${formatCurrency(budgetSpent)} of ${formatCurrency(startingBudget)} spent (${budgetSpentPercent}%)`}
-                </span>
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-md bg-paper px-3 py-2">
-                <Timer size={16} />
-                {formatSeconds(elapsedSeconds)}
-              </span>
-            </div>
-            {currentStatusCopy && <p className="text-sm font-bold text-ink/65">{currentStatusCopy}</p>}
-          </div>
+          {mobileHowToPlay}
+          {indicatorBars}
           <div
             className="tile-grid mx-auto grid aspect-square w-full max-w-[min(82vh,760px)] gap-1 rounded-md border-2 border-ink bg-ink p-1"
             aria-label="Marketplace Minesweeper board"
@@ -682,34 +731,7 @@ export default function Home() {
         </div>
 
         <aside className="space-y-4">
-          <section className="rounded-md border-2 border-ink bg-white/80 p-4">
-            <h2 className="text-lg font-black">How to Play</h2>
-            <p className="mt-3 text-sm leading-6 text-ink/75">
-              Each tile is a marketplace listing. Some are scams. Open one and look for suspicious details.
-            </p>
-            <p className="mt-3 text-sm leading-6 text-ink/75">
-              Scams have four or more suspicious details.
-            </p>
-            <p className="mt-3 text-sm leading-6 text-ink/75">
-              In a safe listing, suspicious details equal the number of scam listings touching the tile.
-            </p>
-            <p className="mt-3 text-sm leading-6 text-ink/75">
-              You win the game by reporting every scam.
-            </p>
-            <p className="mt-3 text-sm leading-6 text-ink/75">
-              You lose the game if you buy a scam item, run out of money, or falsely report three listings.
-            </p>
-            <div className="mt-4 grid gap-2 border-t border-ink/15 pt-4 text-sm font-bold text-ink/75">
-              <div className="flex items-center gap-2">
-                <span className="h-5 w-5 rounded-sm border border-[#d4aa35] bg-[#fff1b8]" aria-hidden="true" />
-                <span>Yellow tiles are incorrect numbers.</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-5 w-5 rounded-sm border border-[#8fb18a] bg-[#dbe8d7]" aria-hidden="true" />
-                <span>Green tiles are correct numbers.</span>
-              </div>
-            </div>
-          </section>
+          {desktopHowToPlay}
 
           <section className="receipt-panel rounded-md border-2 border-ink bg-white/85 p-4">
             <div className="flex items-center justify-between gap-3 border-b border-dashed border-ink/30 pb-3">
