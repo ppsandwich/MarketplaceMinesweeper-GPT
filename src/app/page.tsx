@@ -11,7 +11,6 @@ import { randomSeed } from "@/game/seededRandom";
 import type { Difficulty, GameStatus, Tile } from "@/types/game";
 import type { MarketplaceListing } from "@/types/listing";
 
-const difficultyKey = "marketplace-minesweeper:difficulty";
 const falseReportLimit = 3;
 const bannedMessage = "GAME OVER - you've been banned for making too many false reports.";
 const outOfCashMessage = "GAME OVER! You're out of cash.";
@@ -68,7 +67,7 @@ function statusCopy(status: GameStatus, gameOverMessage: string | null): string 
 }
 
 export default function Home() {
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [difficulty] = useState<Difficulty>("hard");
   const [status, setStatus] = useState<GameStatus>("idle");
   const [board, setBoard] = useState<Tile[]>(() => createEmptyBoard(BOARD_WIDTH, BOARD_HEIGHT));
   const [seed, setSeed] = useState("");
@@ -109,8 +108,6 @@ export default function Home() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") validateListingsData();
-    const stored = window.localStorage.getItem(difficultyKey) as Difficulty | null;
-    if (stored && stored in DIFFICULTIES) setDifficulty(stored);
     setSeed(randomSeed());
   }, []);
 
@@ -157,9 +154,7 @@ export default function Home() {
   }, []);
 
   const resetGame = useCallback(
-    (nextDifficulty = difficulty) => {
-      setDifficulty(nextDifficulty);
-      window.localStorage.setItem(difficultyKey, nextDifficulty);
+    () => {
       setStatus("idle");
       setBoard(createEmptyBoard(BOARD_WIDTH, BOARD_HEIGHT));
       setSeed(randomSeed());
@@ -177,7 +172,7 @@ export default function Home() {
       setBudgetRemaining(null);
       setPurchasedListings([]);
     },
-    [difficulty]
+    []
   );
 
   const ensureGeneratedBoard = useCallback(
@@ -412,20 +407,6 @@ export default function Home() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <label className="grid gap-1 text-sm font-bold text-ink/70">
-            Difficulty
-            <select
-              className="h-11 rounded-md border-2 border-ink bg-white px-3 font-black text-ink"
-              value={difficulty}
-              onChange={(event) => resetGame(event.target.value as Difficulty)}
-            >
-              {Object.entries(DIFFICULTIES).map(([value, config]) => (
-                <option key={value} value={value}>
-                  {config.label}
-                </option>
-              ))}
-            </select>
-          </label>
           <button
             type="button"
             className="mt-auto inline-flex h-11 items-center gap-2 rounded-md bg-ink px-4 font-black text-paper"
@@ -566,14 +547,16 @@ export default function Home() {
           <section className="rounded-md border-2 border-ink bg-white/80 p-4">
             <h2 className="text-lg font-black">How to Play</h2>
             <p className="mt-3 text-sm leading-6 text-ink/75">
-              Each square is a marketplace listing. Some are scams. Open a listing and look for suspicious details.
+              Each tile is a marketplace listing. Some are scams. Open one and look for suspicious details.
             </p>
             <p className="mt-3 text-sm leading-6 text-ink/75">
               In a safe listing, suspicious details equal the number of scam listings touching it.
             </p>
             <p className="mt-3 text-sm leading-6 text-ink/75">
-              You win the game by reporting every scam. You lose the game if you green-flag a scam, or falsely report
-              three safe listings as scams.
+              You win the game by reporting every scam.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-ink/75">
+              You lose the game if you buy a scam item, run out of money, or falsely report three listings.
             </p>
             <div className="mt-4 grid gap-2 border-t border-ink/15 pt-4 text-sm font-bold text-ink/75">
               <div className="flex items-center gap-2">
