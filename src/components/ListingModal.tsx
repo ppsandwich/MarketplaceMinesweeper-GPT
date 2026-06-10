@@ -160,14 +160,16 @@ export function ListingModal({
           </div>
 
           <div className="relative p-5 sm:p-6">
-            <button
-              type="button"
-              aria-label="Close listing"
-              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-ink/15 bg-white"
-              onClick={onClose}
-            >
-              <X size={18} />
-            </button>
+            {secretMode && (
+              <button
+                type="button"
+                aria-label="Close listing"
+                className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-ink/15 bg-white"
+                onClick={onClose}
+              >
+                <X size={18} />
+              </button>
+            )}
 
             <div className="pr-10">
               <p className="text-sm font-semibold uppercase tracking-[0.12em] text-moss">Marketplace listing</p>
@@ -277,7 +279,7 @@ export function ListingModal({
             )}
 
             <div className="mt-6 flex flex-wrap gap-3">
-              {isAlreadyOpened ? (
+              {isAlreadyOpened && secretMode ? (
                 <button
                   type="button"
                   className="inline-flex items-center gap-2 rounded-md bg-ink/25 px-4 py-3 font-black text-ink"
@@ -286,7 +288,7 @@ export function ListingModal({
                   <X size={18} />
                   Close
                 </button>
-              ) : (
+              ) : !isAlreadyOpened ? (
                 <button
                   type="button"
                   className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
@@ -296,7 +298,7 @@ export function ListingModal({
                   <ShieldCheck size={18} />
                   Buy it
                 </button>
-              )}
+              ) : null}
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-md border-2 border-gum bg-white px-4 py-3 font-black text-gum disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35"
