@@ -79,7 +79,9 @@ export default function Home() {
   const [falseReports, setFalseReports] = useState(0);
   const [gameOverMessage, setGameOverMessage] = useState<string | null>(null);
   const [recentlyReportedTileId, setRecentlyReportedTileId] = useState<string | null>(null);
+  const [recentlyFalseReportedTileId, setRecentlyFalseReportedTileId] = useState<string | null>(null);
   const [delayWinOverlay, setDelayWinOverlay] = useState(false);
+  const [winOverlayDismissed, setWinOverlayDismissed] = useState(false);
   const [secretMode, setSecretMode] = useState(false);
   const [startingBudget, setStartingBudget] = useState<number | null>(null);
   const [budgetRemaining, setBudgetRemaining] = useState<number | null>(null);
@@ -136,6 +138,13 @@ export default function Home() {
   }, [recentlyReportedTileId]);
 
   useEffect(() => {
+    if (!recentlyFalseReportedTileId) return;
+
+    const timeout = window.setTimeout(() => setRecentlyFalseReportedTileId(null), 1100);
+    return () => window.clearTimeout(timeout);
+  }, [recentlyFalseReportedTileId]);
+
+  useEffect(() => {
     if (status !== "won" || !delayWinOverlay) return;
 
     const timeout = window.setTimeout(() => setDelayWinOverlay(false), 1100);
@@ -161,7 +170,9 @@ export default function Home() {
       setFalseReports(0);
       setGameOverMessage(null);
       setRecentlyReportedTileId(null);
+      setRecentlyFalseReportedTileId(null);
       setDelayWinOverlay(false);
+      setWinOverlayDismissed(false);
       setStartingBudget(null);
       setBudgetRemaining(null);
       setPurchasedListings([]);
@@ -295,6 +306,7 @@ export default function Home() {
         setStatus("won");
         setEndedAt(Date.now());
         setDelayWinOverlay(false);
+        setWinOverlayDismissed(false);
       }
     },
     [board, budgetRemaining, ensureGeneratedBoard, listings, startingBudget, startClock, status]
@@ -325,6 +337,7 @@ export default function Home() {
 
         if (nextFalseReports >= falseReportLimit) {
           setFalseReports(nextFalseReports);
+          setRecentlyFalseReportedTileId(tileId);
           setGameOverMessage(bannedMessage);
           setStatus("lost");
           setEndedAt(Date.now());
@@ -340,6 +353,7 @@ export default function Home() {
         }
 
         setFalseReports(nextFalseReports);
+        setRecentlyFalseReportedTileId(tileId);
         setBoard(
           activeBoard.map((tile) =>
             tile.id === tileId ? { ...tile, state: "false_report" as const } : tile
@@ -366,6 +380,7 @@ export default function Home() {
         setStatus("won");
         setEndedAt(Date.now());
         setDelayWinOverlay(true);
+        setWinOverlayDismissed(false);
       }
     },
     [board, ensureGeneratedBoardForReport, falseReports, mineCount, startClock, status]
@@ -504,7 +519,7 @@ export default function Home() {
                     isIncorrectOpenedSafeTile && "border-[#d4aa35] bg-[#fff1b8] text-ink",
                     tile.state === "exploded" && "border-[#b42318] bg-[#b42318] text-white",
                     tile.state === "revealed_mine" && "border-gum bg-gum text-white",
-                    recentlyReportedTileId === tile.id && "tile-report-success"
+                    (recentlyReportedTileId === tile.id || recentlyFalseReportedTileId === tile.id) && "tile-report-success"
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -614,7 +629,7 @@ export default function Home() {
         />
       )}
 
-      {status === "won" && !delayWinOverlay && (
+      {status === "won" && !delayWinOverlay && !winOverlayDismissed && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/80 p-5" role="dialog" aria-modal="true" aria-labelledby="win-title">
           <section className="w-full max-w-md rounded-lg border-2 border-ink bg-[#fffaf0] p-6 text-center shadow-card">
             <Trophy className="mx-auto mb-4 text-moss" size={56} aria-hidden="true" />
@@ -641,6 +656,13 @@ export default function Home() {
             >
               <RotateCcw size={18} />
               Restart
+            </button>
+            <button
+              type="button"
+              className="ml-3 mt-6 inline-flex items-center rounded-md border-2 border-ink bg-white px-5 py-3 font-black text-ink"
+              onClick={() => setWinOverlayDismissed(true)}
+            >
+              Show Board
             </button>
           </section>
         </div>
