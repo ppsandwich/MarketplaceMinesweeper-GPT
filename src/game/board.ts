@@ -79,7 +79,7 @@ function scamListingFromTemplate(
     title: `${template.title} - Definitely real, quick sale`,
     location: "VIC, maybe",
     description: `${template.description} ${scamDescriptionClues[descriptionSignalChoices.indexOf(descriptionSignal)]}`,
-    imageFilenames: [template.imageFilenames[0], mismatchedImage],
+    imageFilenames: [mismatchedImage],
     suspiciousSignals: signals,
     isScamTemplate: true
   };
@@ -160,7 +160,8 @@ export function generateBoard({
             pickUnused(neutralListingTemplates, usedListingTemplates, random),
             adjacentMineCount,
             index,
-            neutralListingTemplates
+            neutralListingTemplates,
+            random
           );
 
       return {

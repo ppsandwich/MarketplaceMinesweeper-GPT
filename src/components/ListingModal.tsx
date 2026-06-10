@@ -211,9 +211,6 @@ export function ListingModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="listing-title"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
     >
       <section
         className={[

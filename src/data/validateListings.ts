@@ -1,6 +1,6 @@
 import { listingsBySuspicionCount } from "@/data/listings";
 
-const maxListingPhotos = 3;
+const maxListingPhotos = 1;
 
 export function validateListingsData(): void {
   const ids = new Set<string>();

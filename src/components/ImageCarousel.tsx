@@ -1,7 +1,6 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 interface ImageCarouselProps {
@@ -9,13 +8,12 @@ interface ImageCarouselProps {
   title: string;
 }
 
-const maxListingPhotos = 3;
+const maxListingPhotos = 1;
 
 export function ImageCarousel({ filenames, title }: ImageCarouselProps) {
-  const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
   const images = filenames.length > 0 ? filenames.slice(0, maxListingPhotos) : ["placeholder.svg"];
-  const filename = images[index] ?? images[0];
+  const filename = images[0];
   const missing = failed[filename];
 
   return (
@@ -27,7 +25,7 @@ export function ImageCarousel({ filenames, title }: ImageCarouselProps) {
       ) : (
         <img
           src={`/listings/${filename}`}
-          alt={`${title} listing photo ${index + 1}`}
+          alt={`${title} listing photo`}
           className="h-full w-full object-cover"
           loading="lazy"
           onError={() => {
@@ -37,27 +35,6 @@ export function ImageCarousel({ filenames, title }: ImageCarouselProps) {
             setFailed((current) => ({ ...current, [filename]: true }));
           }}
         />
-      )}
-
-      {images.length > 1 && (
-        <div className="absolute inset-x-3 top-1/2 flex -translate-y-1/2 justify-between">
-          <button
-            type="button"
-            aria-label="Previous photo"
-            className="grid h-9 w-9 place-items-center rounded-full bg-paper/90 text-ink shadow-card"
-            onClick={() => setIndex((current) => (current - 1 + images.length) % images.length)}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label="Next photo"
-            className="grid h-9 w-9 place-items-center rounded-full bg-paper/90 text-ink shadow-card"
-            onClick={() => setIndex((current) => (current + 1) % images.length)}
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
       )}
     </div>
   );
