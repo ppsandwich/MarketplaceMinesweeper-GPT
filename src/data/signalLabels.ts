@@ -3,7 +3,6 @@ import type { SuspiciousSignal } from "@/types/listing";
 export const signalLabels: Record<SuspiciousSignal, string> = {
   image_description_mismatch: "photo does not match the description",
   multiple_items_in_photos: "different items appear across photos",
-  seller_no_face_photo: "seller profile avoids a normal face photo",
   unnatural_seller_name: "seller name feels manufactured",
   suspiciously_low_price: "price is suspiciously low",
   delivery_only: "seller insists on delivery only",

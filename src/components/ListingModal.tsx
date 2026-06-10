@@ -172,7 +172,6 @@ export function ListingModal({
   const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch"]);
   const titleHighlight = secretMode && hasSignal(listing, ["explicit_not_a_scam"]);
   const locationHighlight = secretMode && hasSignal(listing, ["vague_location"]);
-  const avatarHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo"]);
   const sellerNameHighlight = secretMode && hasSignal(listing, ["unnatural_seller_name"]);
   const sellerAgeHighlight = secretMode && hasSignal(listing, ["brand_new_profile"]);
   const incorrectRevealSignal = incorrectGuessReveal
@@ -193,7 +192,6 @@ export function ListingModal({
     (completedListingReveal && hasSignal(listing, ["image_description_mismatch"]));
   const titleReveal = activeRevealSignal === "explicit_not_a_scam" || (completedListingReveal && hasSignal(listing, ["explicit_not_a_scam"]));
   const locationReveal = activeRevealSignal === "vague_location" || (completedListingReveal && hasSignal(listing, ["vague_location"]));
-  const avatarReveal = activeRevealSignal === "seller_no_face_photo" || (completedListingReveal && hasSignal(listing, ["seller_no_face_photo"]));
   const sellerNameReveal = activeRevealSignal === "unnatural_seller_name" || (completedListingReveal && hasSignal(listing, ["unnatural_seller_name"]));
   const sellerAgeReveal = activeRevealSignal === "brand_new_profile" || (completedListingReveal && hasSignal(listing, ["brand_new_profile"]));
 
@@ -305,12 +303,7 @@ export function ListingModal({
 
             <div className="mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3">
               <div
-                className={[
-                  "grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink",
-                  elementHighlight(avatarHighlight, avatarReveal)
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
+                className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink"
               >
                 {listing.sellerAvatarFilename && !avatarFailed ? (
                   <img

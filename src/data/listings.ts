@@ -12,7 +12,7 @@ const sectionSignalChoices: Array<{
   signals: SuspiciousSignal[];
 }> = [
   { section: "description", signals: ["delivery_only", "deposit_required", "payment_outside_platform", "urgent_sale_pressure", "refuses_inspection", "poor_grammar", "too_many_emojis", "sob_story", "duplicate_listing_language"] },
-  { section: "seller", signals: ["brand_new_profile", "seller_no_face_photo", "unnatural_seller_name"] },
+  { section: "seller", signals: ["brand_new_profile", "unnatural_seller_name"] },
   { section: "photos", signals: ["image_description_mismatch"] },
   { section: "location", signals: ["vague_location"] },
   { section: "title", signals: ["explicit_not_a_scam"] }
@@ -703,14 +703,6 @@ const sellerNames = [
   "Jonah Price"
 ];
 
-const nonFaceAvatarFilenames = [
-  "profile-non-face-moving-box-01.jpg",
-  "profile-non-face-dealz-logo-01.jpg",
-  "profile-non-face-suspicious-cat-01.jpg",
-  "profile-non-face-blank-grey-01.jpg",
-  "profile-non-face-ai-weird-smile-01.jpg"
-];
-
 function sellerSlug(sellerName: string): string {
   return sellerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -767,8 +759,6 @@ function suspiciousText(signal: SuspiciousSignal): Partial<MarketplaceListing> {
       return { description: "A small deposit holds it before anyone else arrives." };
     case "brand_new_profile":
       return { sellerProfileAge: "Joined this week" };
-    case "seller_no_face_photo":
-      return { sellerAvatarType: "object" };
     case "vague_location":
       return { location: "Somewhere near Melbourne" };
     case "urgent_sale_pressure":
@@ -835,10 +825,6 @@ function makeListing(count: number, index: number): MarketplaceListing {
     listing.sellerAvatarFilename = faceAvatarFilename(listing.sellerName);
   }
 
-  if (signals.includes("seller_no_face_photo")) {
-    listing.sellerAvatarFilename = nonFaceAvatarFilenames[(count + index) % nonFaceAvatarFilenames.length];
-  }
-
   if (signals.includes("image_description_mismatch")) {
     listing.imageFilenames = [mismatchedImageFilenames(base.slug, count, index)[0]];
   }
@@ -891,10 +877,6 @@ export function listingFromTemplateWithSuspicionCount(
     listing.sellerProfileAge = patch.sellerProfileAge ?? listing.sellerProfileAge;
     listing.sellerAvatarType = patch.sellerAvatarType ?? listing.sellerAvatarType;
     listing.sellerAvatarFilename = patch.sellerAvatarFilename ?? listing.sellerAvatarFilename;
-  }
-
-  if (signals.includes("seller_no_face_photo")) {
-    listing.sellerAvatarFilename = nonFaceAvatarFilenames[(count + index) % nonFaceAvatarFilenames.length];
   }
 
   const alternateImages = allTemplates

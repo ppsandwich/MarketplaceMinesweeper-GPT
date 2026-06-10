@@ -1,7 +1,6 @@
 export type SuspiciousSignal =
   | "image_description_mismatch"
   | "multiple_items_in_photos"
-  | "seller_no_face_photo"
   | "unnatural_seller_name"
   | "suspiciously_low_price"
   | "delivery_only"
