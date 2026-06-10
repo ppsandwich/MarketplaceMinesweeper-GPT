@@ -705,7 +705,7 @@ function suspiciousText(signal: SuspiciousSignal): Partial<MarketplaceListing> {
     case "refuses_inspection":
       return { description: "No inspections, too many time wasters, please trust the vibe." };
     case "stock_photo":
-      return { description: "Photos are from the catalogue because the item is packed already." };
+      return {};
     case "unnatural_seller_name":
       return { sellerName: "Market Value Kelvin" };
     case "multiple_items_in_photos":
