@@ -47,6 +47,14 @@ function secretHighlight(active: boolean): string {
   return active ? "ring-2 ring-gum bg-notice/25 shadow-[0_0_0_4px_rgba(245,211,107,0.28)]" : "";
 }
 
+function revealHighlight(active: boolean): string {
+  return active ? "scam-reveal-outline ring-4 ring-[#d92d20] bg-[#fee4e2] shadow-[0_0_0_6px_rgba(217,45,32,0.22)]" : "";
+}
+
+function elementHighlight(secretActive: boolean, revealActive: boolean): string {
+  return [secretHighlight(secretActive), revealHighlight(revealActive)].filter(Boolean).join(" ");
+}
+
 function splitSentences(description: string): string[] {
   return description.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [description];
 }
@@ -71,6 +79,21 @@ function isSuspiciousDescriptionSentence(sentence: string, listing: MarketplaceL
   );
 }
 
+function isDescriptionSignal(signal: SuspiciousSignal | null): boolean {
+  return signal !== null && [
+    "delivery_only",
+    "deposit_required",
+    "payment_outside_platform",
+    "urgent_sale_pressure",
+    "poor_grammar",
+    "too_many_emojis",
+    "sob_story",
+    "refuses_inspection",
+    "duplicate_listing_language",
+    "stock_photo"
+  ].includes(signal);
+}
+
 function gameOverSupportText(isScammed: boolean, gameOverMessage: string | null): string {
   if (isScammed) {
     return "You sent a deposit to “Definitely Greg”, and you definitely won't hear from Greg again.";
@@ -83,16 +106,24 @@ function gameOverSupportText(isScammed: boolean, gameOverMessage: string | null)
   return "Marketplace moderation has reviewed your enthusiasm and revoked your clipboard.";
 }
 
-function renderDescription(description: string, listing: MarketplaceListing, secretMode: boolean) {
+function renderDescription(
+  description: string,
+  listing: MarketplaceListing,
+  secretMode: boolean,
+  activeRevealSignal: SuspiciousSignal | null
+) {
   return splitSentences(description).map((sentence, index) => {
-    const highlighted = secretMode && isSuspiciousDescriptionSentence(sentence, listing);
+    const suspiciousSentence = isSuspiciousDescriptionSentence(sentence, listing);
+    const secretHighlighted = secretMode && suspiciousSentence;
+    const revealHighlighted = isDescriptionSignal(activeRevealSignal) && suspiciousSentence;
 
     return (
       <span
         key={`${sentence}-${index}`}
         className={[
           "rounded-sm",
-          highlighted && "bg-notice/45 px-1 py-0.5 ring-2 ring-gum/70"
+          secretHighlighted && "bg-notice/45 px-1 py-0.5 ring-2 ring-gum/70",
+          revealHighlighted && "scam-reveal-outline bg-[#fee4e2] px-1 py-0.5 ring-4 ring-[#d92d20]"
         ]
           .filter(Boolean)
           .join(" ")}
@@ -117,8 +148,10 @@ export function ListingModal({
   secretMode
 }: ListingModalProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [activeRevealIndex, setActiveRevealIndex] = useState(0);
+  const [scamRevealComplete, setScamRevealComplete] = useState(false);
   const isScammed = status === "lost" && tile.state === "exploded";
-  const showGameOverOverlay = status === "lost" && (tile.state === "exploded" || gameOverMessage !== null);
+  const showGameOverOverlay = status === "lost" && (gameOverMessage !== null || (tile.state === "exploded" && scamRevealComplete));
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
   const isAlreadyOpened = tile.state === "opened";
   const note = tile.playerSuspicionCount;
@@ -131,10 +164,45 @@ export function ListingModal({
   const avatarHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo"]);
   const sellerNameHighlight = secretMode && hasSignal(listing, ["unnatural_seller_name"]);
   const sellerAgeHighlight = secretMode && hasSignal(listing, ["brand_new_profile"]);
+  const activeRevealSignal = isScammed && !scamRevealComplete
+    ? listing.suspiciousSignals[Math.min(activeRevealIndex, listing.suspiciousSignals.length - 1)] ?? null
+    : null;
+  const revealCount = isScammed && !scamRevealComplete ? Math.min(activeRevealIndex + 1, listing.suspiciousSignals.length) : 0;
+  const imageReveal = activeRevealSignal !== null && ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"].includes(activeRevealSignal);
+  const titleReveal = activeRevealSignal === "explicit_not_a_scam";
+  const locationReveal = activeRevealSignal === "vague_location";
+  const avatarReveal = activeRevealSignal === "seller_no_face_photo";
+  const sellerNameReveal = activeRevealSignal === "unnatural_seller_name";
+  const sellerAgeReveal = activeRevealSignal === "brand_new_profile";
 
   useEffect(() => {
     setAvatarFailed(false);
   }, [listing.id, listing.sellerAvatarFilename]);
+
+  useEffect(() => {
+    if (!isScammed) {
+      setActiveRevealIndex(0);
+      setScamRevealComplete(false);
+      return;
+    }
+
+    setActiveRevealIndex(0);
+    setScamRevealComplete(false);
+    const signalCount = Math.max(1, listing.suspiciousSignals.length);
+    const stepMs = 3000 / signalCount;
+    const interval = window.setInterval(() => {
+      setActiveRevealIndex((current) => Math.min(current + 1, signalCount - 1));
+    }, stepMs);
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(interval);
+      setScamRevealComplete(true);
+    }, 3000);
+
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, [isScammed, listing.id, listing.suspiciousSignals.length]);
 
   return (
     <div
@@ -155,7 +223,7 @@ export function ListingModal({
           .join(" ")}
       >
         <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className={["bg-[#e8e0d2] p-4 sm:p-5", secretHighlight(imageHighlight)].filter(Boolean).join(" ")}>
+          <div className={["bg-[#e8e0d2] p-4 sm:p-5", elementHighlight(imageHighlight, imageReveal)].filter(Boolean).join(" ")}>
             <ImageCarousel filenames={listing.imageFilenames} title={listing.title} />
           </div>
 
@@ -177,7 +245,7 @@ export function ListingModal({
                 id="listing-title"
                 className={[
                   "mt-2 rounded-md text-2xl font-black leading-tight text-ink",
-                  secretHighlight(titleHighlight)
+                  elementHighlight(titleHighlight, titleReveal)
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -185,7 +253,7 @@ export function ListingModal({
                 {listing.title}
               </h2>
               <p className="mt-2 inline-block rounded-md px-1 text-3xl font-black text-gum">{listing.price}</p>
-              <p className={["mt-1 rounded-md text-sm font-semibold text-ink/65", secretHighlight(locationHighlight)].filter(Boolean).join(" ")}>
+              <p className={["mt-1 rounded-md text-sm font-semibold text-ink/65", elementHighlight(locationHighlight, locationReveal)].filter(Boolean).join(" ")}>
                 {listing.location}
               </p>
             </div>
@@ -194,7 +262,7 @@ export function ListingModal({
               <div
                 className={[
                   "grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-notice text-sm font-black text-ink",
-                  secretHighlight(avatarHighlight)
+                  elementHighlight(avatarHighlight, avatarReveal)
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -218,17 +286,17 @@ export function ListingModal({
                 )}
               </div>
               <div>
-                <p className={["rounded-sm font-bold", secretHighlight(sellerNameHighlight)].filter(Boolean).join(" ")}>
+                <p className={["rounded-sm font-bold", elementHighlight(sellerNameHighlight, sellerNameReveal)].filter(Boolean).join(" ")}>
                   {listing.sellerName}
                 </p>
-                <p className={["rounded-sm text-sm text-ink/65", secretHighlight(sellerAgeHighlight)].filter(Boolean).join(" ")}>
+                <p className={["rounded-sm text-sm text-ink/65", elementHighlight(sellerAgeHighlight, sellerAgeReveal)].filter(Boolean).join(" ")}>
                   {listing.sellerProfileAge}
                 </p>
               </div>
             </div>
 
             <p className="mt-5 text-base leading-7 text-ink/85">
-              {renderDescription(listing.description, listing, secretMode)}
+              {renderDescription(listing.description, listing, secretMode, activeRevealSignal)}
             </p>
 
             <div className="mt-5 rounded-md border border-ink/15 bg-white/75 p-3">
@@ -293,7 +361,7 @@ export function ListingModal({
                   type="button"
                   className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
                   onClick={() => onOpenTile(tile.id)}
-                  disabled={status === "won" || (status === "lost" && tile.state !== "exploded")}
+                  disabled={status !== "playing"}
                 >
                   <ShieldCheck size={18} />
                   Buy it
@@ -311,6 +379,18 @@ export function ListingModal({
             </div>
           </div>
         </div>
+
+        {isScammed && !scamRevealComplete && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-ink/10 p-6">
+            <div className="rounded-lg border-4 border-[#d92d20] bg-white/95 px-8 py-5 text-center shadow-card">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d92d20]">Suspicious detail</p>
+              <p className="text-7xl font-black leading-none text-[#d92d20]">
+                {revealCount}
+              </p>
+              <p className="mt-1 text-lg font-black text-ink/70">of {listing.suspiciousSignals.length}</p>
+            </div>
+          </div>
+        )}
 
         {showGameOverOverlay && (
           <div className="absolute inset-0 grid place-items-center bg-[#5f120d]/95 p-6 text-center text-white">
