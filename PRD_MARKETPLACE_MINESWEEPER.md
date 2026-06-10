@@ -163,7 +163,7 @@ type TileState =
 - Hidden tiles show a search/listing affordance.
 - Opened safe tiles show the player's submitted suspicious-detail count if it is greater than 0.
 - Correct opened safe tiles are green.
-- Incorrect opened safe tiles are yellow.
+- Incorrect opened safe tiles are grey and show a large `X`.
 - Reported scam tiles show `SCAM FOUND!` with dark green tile styling and light green text.
 - False reports show `FALSE REPORT` with red tile styling.
 - Scam tiles revealed after loss show scam styling.
@@ -381,7 +381,7 @@ Clicking outside the popover must not close it.
 
 When secret mode is off, unopened listing popovers do not show a Close button.
 
-When a tile has already been bought, reported, or false-reported, reopening it shows a Close button to the left of the Report Listing button.
+When a tile has already been bought, reported, or false-reported, it is locked and cannot be clicked again.
 
 ---
 
@@ -405,7 +405,7 @@ Rules:
 - If the player selects 4, the number turns yellow.
 - If the player selects 5, the number turns red.
 - The red/yellow number styling must not reveal the actual suspicious count of the current listing.
-- The plus/minus controls are disabled when reopening an already bought listing.
+- Once a listing has been bought, its tile is locked and the input cannot be changed.
 
 If the player already bought the listing, the `Buy it` button is replaced with a grey `Close` button.
 
@@ -425,7 +425,7 @@ Buying a safe listing:
 - Adds the listing to the receipt.
 - Deducts the listing price from the player's budget.
 - Colours the tile green if the submitted count is correct.
-- Colours the tile yellow if the submitted count is incorrect.
+- Colours the tile grey and shows a large `X` if the submitted count is incorrect.
 
 If the submitted count is incorrect:
 
@@ -614,7 +614,7 @@ You lose the game if you buy a scam item, run out of money, or falsely report th
 
 The How to Play section includes a legend:
 
-- Yellow tiles are incorrect numbers.
+- Grey X tiles are incorrect numbers.
 - Green tiles are correct numbers.
 
 On small screens:
@@ -649,23 +649,20 @@ Secret mode is a hidden/debug-style feature, not the default player experience.
 
 ---
 
-## 21. Reopening Completed Listings
+## 21. Completed Listings
 
-When a bought, reported, or false-reported listing is reopened:
+When a listing has been bought, reported, or false-reported:
 
-- The suspicious elements are highlighted in red immediately.
-- No counter animation is replayed.
-- The Close button is available.
-
-For bought safe listings:
-
-- The plus/minus controls are disabled.
-- The Buy it button is replaced with a grey Close button.
+- Its tile is locked.
+- It cannot be clicked again.
+- It cannot reopen the listing modal.
 
 For bought safe listings:
 
 - Correct submitted count means green tile.
-- Incorrect submitted count means yellow tile.
+- Incorrect submitted count means grey tile with a large `X`.
+
+Previously requested reopened-listing highlights are superseded by the locked completed-tile behavior.
 
 ---
 
@@ -858,14 +855,14 @@ Before deployment:
 - Player loses by buying a scam, running out of money, or making three false reports.
 - False reports are visibly marked.
 - Reported scams are visibly marked as `SCAM FOUND!`.
-- Bought safe tiles are green when the submitted count is correct and yellow when incorrect.
+- Bought safe tiles are green when the submitted count is correct and grey with a large `X` when incorrect.
 
 ### Listing Experience
 
 - Listing modal shows image, title, price, `Location:`, seller details, description, suspicious detail counter, and actions.
 - Unopened listing popovers do not show Close unless secret mode provides the close control.
 - Clicking outside the popover does not close it.
-- Reopened bought/reported/false-reported listings highlight suspicious elements in red.
+- Bought/reported/false-reported tiles cannot be clicked again.
 - Incorrect safe guesses trigger the sequential red highlight and counter before closing.
 - Buying a scam triggers the sequential red highlight and counter before game over.
 
