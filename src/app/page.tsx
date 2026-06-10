@@ -223,7 +223,6 @@ export default function Home() {
 
       const tile = board.find((candidate) => candidate.id === tileId);
       if (!tile) return;
-      if (tile.state === "flagged") return;
 
       startClock();
       const activeBoard = ensureGeneratedBoard(tile);
