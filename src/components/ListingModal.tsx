@@ -252,7 +252,7 @@ export function ListingModal({
               </h2>
               <p className="mt-2 inline-block rounded-md px-1 text-3xl font-black text-gum">{listing.price}</p>
               <p className={["mt-1 rounded-md text-sm font-semibold text-ink/65", elementHighlight(locationHighlight, locationReveal)].filter(Boolean).join(" ")}>
-                {listing.location}
+                Location: {listing.location}
               </p>
             </div>
 
