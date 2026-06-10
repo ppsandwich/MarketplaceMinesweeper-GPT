@@ -13,6 +13,7 @@ import type { Difficulty, GameStatus, Tile } from "@/types/game";
 import type { MarketplaceListing } from "@/types/listing";
 
 const falseReportLimit = 3;
+const gameStateKey = "marketsweeper:game-state:v1";
 const bannedMessage = "GAME OVER - you've been banned for making too many false reports.";
 const outOfCashMessage = "GAME OVER! You're out of cash.";
 const titleFont = Sixtyfour_Convergence({
@@ -25,6 +26,24 @@ interface PurchasedListing {
   title: string;
   price: string;
   amount: number;
+}
+
+interface SavedGameState {
+  version: 1;
+  status: GameStatus;
+  board: Tile[];
+  seed: string;
+  selectedTileId: string | null;
+  startedAt: number | null;
+  endedAt: number | null;
+  falseReports: number;
+  gameOverMessage: string | null;
+  delayWinOverlay: boolean;
+  winOverlayDismissed: boolean;
+  secretMode: boolean;
+  startingBudget: number | null;
+  budgetRemaining: number | null;
+  purchasedListings: PurchasedListing[];
 }
 
 function listingMap(): Map<string, MarketplaceListing> {
@@ -61,14 +80,26 @@ function calculateStartingBudget(board: Tile[], listings: Map<string, Marketplac
   return Math.round(totalListingPrice * 0.6);
 }
 
+function normalizeListingImages(board: Tile[]): Tile[] {
+  return board.map((tile) => ({
+    ...tile,
+    listing: tile.listing
+      ? {
+          ...tile.listing,
+          imageFilenames: tile.listing.imageFilenames.slice(0, 1)
+        }
+      : null
+  }));
+}
+
 function generateInitialBoard(seed: string, mineCount: number): Tile[] {
-  return generateBoard({
+  return normalizeListingImages(generateBoard({
     width: BOARD_WIDTH,
     height: BOARD_HEIGHT,
     mineCount,
     seed,
     safeFirstClickPosition: { x: -1, y: -1 }
-  });
+  }));
 }
 
 function statusCopy(status: GameStatus, gameOverMessage: string | null): string | null {
@@ -100,6 +131,7 @@ export default function Home() {
   const [startingBudget, setStartingBudget] = useState<number | null>(null);
   const [budgetRemaining, setBudgetRemaining] = useState<number | null>(null);
   const [purchasedListings, setPurchasedListings] = useState<PurchasedListing[]>([]);
+  const [hasLoadedSavedState, setHasLoadedSavedState] = useState(false);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
@@ -123,6 +155,36 @@ export default function Home() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") validateListingsData();
+    const savedState = window.localStorage.getItem(gameStateKey);
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState) as SavedGameState;
+        if (parsed.version === 1 && Array.isArray(parsed.board) && parsed.board.length === BOARD_WIDTH * BOARD_HEIGHT) {
+          setStatus(parsed.status);
+          setBoard(normalizeListingImages(parsed.board));
+          setSeed(parsed.seed);
+          setSelectedTileId(parsed.selectedTileId);
+          setStartedAt(parsed.startedAt);
+          setEndedAt(parsed.endedAt);
+          setNow(Date.now());
+          setFalseReports(parsed.falseReports);
+          setGameOverMessage(parsed.gameOverMessage);
+          setRecentlyReportedTileId(null);
+          setRecentlyFalseReportedTileId(null);
+          setDelayWinOverlay(parsed.delayWinOverlay);
+          setWinOverlayDismissed(parsed.winOverlayDismissed);
+          setSecretMode(parsed.secretMode);
+          setStartingBudget(parsed.startingBudget);
+          setBudgetRemaining(parsed.budgetRemaining);
+          setPurchasedListings(parsed.purchasedListings ?? []);
+          setHasLoadedSavedState(true);
+          return;
+        }
+      } catch {
+        window.localStorage.removeItem(gameStateKey);
+      }
+    }
+
     const nextSeed = randomSeed();
     const generated = generateInitialBoard(nextSeed, mineCount);
     const generatedBudget = calculateStartingBudget(generated, listings);
@@ -130,7 +192,47 @@ export default function Home() {
     setBoard(generated);
     setStartingBudget(generatedBudget);
     setBudgetRemaining(generatedBudget);
+    setHasLoadedSavedState(true);
   }, [listings, mineCount]);
+
+  useEffect(() => {
+    if (!hasLoadedSavedState) return;
+
+    const savedState: SavedGameState = {
+      version: 1,
+      status,
+      board: normalizeListingImages(board),
+      seed,
+      selectedTileId,
+      startedAt,
+      endedAt,
+      falseReports,
+      gameOverMessage,
+      delayWinOverlay,
+      winOverlayDismissed,
+      secretMode,
+      startingBudget,
+      budgetRemaining,
+      purchasedListings
+    };
+    window.localStorage.setItem(gameStateKey, JSON.stringify(savedState));
+  }, [
+    board,
+    budgetRemaining,
+    delayWinOverlay,
+    endedAt,
+    falseReports,
+    gameOverMessage,
+    hasLoadedSavedState,
+    purchasedListings,
+    secretMode,
+    seed,
+    selectedTileId,
+    startedAt,
+    startingBudget,
+    status,
+    winOverlayDismissed
+  ]);
 
   useEffect(() => {
     if (status !== "playing" || !startedAt || endedAt) return;
@@ -204,13 +306,13 @@ export default function Home() {
       const isGenerated = board.some((candidate) => candidate.listingId);
       if (isGenerated) return board;
 
-      const generated = generateBoard({
+      const generated = normalizeListingImages(generateBoard({
         width: BOARD_WIDTH,
         height: BOARD_HEIGHT,
         mineCount,
         seed,
         safeFirstClickPosition: { x: tile.x, y: tile.y }
-      });
+      }));
       const generatedBudget = calculateStartingBudget(generated, listings);
       setBoard(generated);
       setStartingBudget(generatedBudget);
@@ -224,13 +326,13 @@ export default function Home() {
     const isGenerated = board.some((candidate) => candidate.listingId);
     if (isGenerated) return board;
 
-    const generated = generateBoard({
+    const generated = normalizeListingImages(generateBoard({
       width: BOARD_WIDTH,
       height: BOARD_HEIGHT,
       mineCount,
       seed,
       safeFirstClickPosition: { x: -1, y: -1 }
-    });
+    }));
     const generatedBudget = calculateStartingBudget(generated, listings);
     setBoard(generated);
     setStartingBudget(generatedBudget);
@@ -426,7 +528,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
       <header className="flex flex-col justify-between gap-4 border-b-2 border-ink pb-5 lg:flex-row lg:items-end">
         <div>
-          <h1 className={`${titleFont.className} text-4xl leading-none sm:text-5xl`}>MarketSweeper</h1>
+          <h1 className={`${titleFont.className} text-[1.575rem] leading-none sm:text-[2.1rem]`}>MarketSweeper</h1>
           <p className="mt-2 text-base font-bold text-ink/65 sm:text-lg">
             Second-hand marketplaces can be a real minefield. 💣
           </p>
@@ -575,7 +677,10 @@ export default function Home() {
               Each tile is a marketplace listing. Some are scams. Open one and look for suspicious details.
             </p>
             <p className="mt-3 text-sm leading-6 text-ink/75">
-              In a safe listing, suspicious details equal the number of scam listings touching it.
+              Scams have four or more suspicious details.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-ink/75">
+              In a safe listing, suspicious details equal the number of scam listings touching the tile.
             </p>
             <p className="mt-3 text-sm leading-6 text-ink/75">
               You win the game by reporting every scam.
