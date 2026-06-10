@@ -835,11 +835,11 @@ function makeListing(count: number, index: number): MarketplaceListing {
   }
 
   if (signals.includes("image_description_mismatch")) {
-    listing.imageFilenames = [listing.imageFilenames[0], mismatchedImageFilenames(base.slug, count, index)[0]];
+    listing.imageFilenames = [mismatchedImageFilenames(base.slug, count, index)[0]];
   }
 
   if (signals.includes("multiple_items_in_photos")) {
-    listing.imageFilenames = [listing.imageFilenames[0], ...mismatchedImageFilenames(base.slug, count, index)];
+    listing.imageFilenames = [mismatchedImageFilenames(base.slug, count, index)[1]];
   }
 
   return listing;
@@ -868,7 +868,8 @@ export function listingFromTemplateWithSuspicionCount(
   template: MarketplaceListing,
   count: number,
   index: number,
-  allTemplates: MarketplaceListing[] = neutralListingTemplates
+  allTemplates: MarketplaceListing[] = neutralListingTemplates,
+  random?: () => number
 ): MarketplaceListing {
   const signals = chooseSignals(count, index);
   const listing: MarketplaceListing = {
@@ -900,14 +901,15 @@ export function listingFromTemplateWithSuspicionCount(
     .flatMap((candidate) => candidate.imageFilenames);
 
   if (signals.includes("image_description_mismatch")) {
-    const image = alternateImages[(count + index) % alternateImages.length] ?? listing.imageFilenames[0];
-    listing.imageFilenames = [listing.imageFilenames[0], image];
+    const imageIndex = random ? Math.floor(random() * alternateImages.length) : (count + index) % alternateImages.length;
+    const image = alternateImages[imageIndex] ?? listing.imageFilenames[0];
+    listing.imageFilenames = [image];
   }
 
   if (signals.includes("multiple_items_in_photos")) {
-    const firstImage = alternateImages[(count + index) % alternateImages.length] ?? listing.imageFilenames[0];
-    const secondImage = alternateImages[(count + index + 7) % alternateImages.length] ?? firstImage;
-    listing.imageFilenames = [listing.imageFilenames[0], firstImage, secondImage];
+    const imageIndex = random ? Math.floor(random() * alternateImages.length) : (count + index + 7) % alternateImages.length;
+    const image = alternateImages[imageIndex] ?? listing.imageFilenames[0];
+    listing.imageFilenames = [image];
   }
 
   return listing;
