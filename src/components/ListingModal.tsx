@@ -154,6 +154,7 @@ export function ListingModal({
   const showGameOverOverlay = status === "lost" && (gameOverMessage !== null || (tile.state === "exploded" && scamRevealComplete));
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
   const isAlreadyOpened = tile.state === "opened";
+  const showActionClose = tile.state === "opened" || tile.state === "flagged" || tile.state === "false_report";
   const note = tile.playerSuspicionCount;
   const noteIsAboveSafeRange = note === 4;
   const noteIndicatesScam = note === 5;
@@ -347,7 +348,7 @@ export function ListingModal({
             )}
 
             <div className="mt-6 flex flex-wrap gap-3">
-              {isAlreadyOpened && secretMode ? (
+              {showActionClose && (
                 <button
                   type="button"
                   className="inline-flex items-center gap-2 rounded-md bg-ink/25 px-4 py-3 font-black text-ink"
@@ -356,7 +357,8 @@ export function ListingModal({
                   <X size={18} />
                   Close
                 </button>
-              ) : !isAlreadyOpened ? (
+              )}
+              {!showActionClose ? (
                 <button
                   type="button"
                   className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
