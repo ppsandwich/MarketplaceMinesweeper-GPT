@@ -27,13 +27,6 @@ const unnaturalSellerNames = [
   "Definitely Greg",
   "Listing Support Desk"
 ] as const;
-const nonFaceAvatarFilenames = [
-  "profile-non-face-moving-box-01.jpg",
-  "profile-non-face-dealz-logo-01.jpg",
-  "profile-non-face-suspicious-cat-01.jpg",
-  "profile-non-face-blank-grey-01.jpg",
-  "profile-non-face-ai-weird-smile-01.jpg"
-] as const;
 
 function tileId(x: number, y: number): string {
   return `${x}-${y}`;
@@ -58,7 +51,7 @@ function scamListingFromTemplate(
   index: number,
   random: () => number
 ): MarketplaceListing {
-  const sellerSignalChoices: SuspiciousSignal[] = ["unnatural_seller_name", "seller_no_face_photo", "brand_new_profile"];
+  const sellerSignalChoices: SuspiciousSignal[] = ["unnatural_seller_name", "brand_new_profile"];
   const descriptionSignalChoices: SuspiciousSignal[] = ["deposit_required", "delivery_only", "payment_outside_platform", "urgent_sale_pressure"];
   const sellerSignal = sellerSignalChoices[Math.floor(random() * sellerSignalChoices.length)];
   const descriptionSignal = descriptionSignalChoices[Math.floor(random() * descriptionSignalChoices.length)];
@@ -88,11 +81,6 @@ function scamListingFromTemplate(
     listing.sellerName = unnaturalSellerNames[Math.floor(random() * unnaturalSellerNames.length)];
     listing.sellerAvatarType = "face";
     listing.sellerAvatarFilename = null;
-  }
-
-  if (sellerSignal === "seller_no_face_photo") {
-    listing.sellerAvatarType = "object";
-    listing.sellerAvatarFilename = nonFaceAvatarFilenames[Math.floor(random() * nonFaceAvatarFilenames.length)];
   }
 
   if (sellerSignal === "brand_new_profile") {

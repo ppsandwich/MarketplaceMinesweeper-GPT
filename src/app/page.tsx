@@ -91,6 +91,15 @@ function normalizeProfileImageFilename(filename: string | null | undefined): str
 }
 
 const legacyPhotoSignals = new Set<SuspiciousSignal>(["multiple_items_in_photos", "stock_photo"]);
+const legacyProfilePhotoSignals = new Set(["seller_no_face_photo"]);
+
+function sellerSlug(sellerName: string): string {
+  return sellerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function faceAvatarFilename(sellerName: string): string {
+  return `profile-${sellerSlug(sellerName)}-face-01.jpg`;
+}
 
 function findNeutralTemplate(listing: MarketplaceListing): MarketplaceListing | null {
   return neutralListingTemplates.find((template) => {
@@ -107,7 +116,11 @@ function firstMismatchedTemplateImage(template: MarketplaceListing | null, curre
 }
 
 function normalizeSuspiciousSignals(signals: SuspiciousSignal[]): SuspiciousSignal[] {
-  const normalized = signals.map((signal) => legacyPhotoSignals.has(signal) ? "image_description_mismatch" : signal);
+  const normalized = (signals as string[]).map((signal): SuspiciousSignal => {
+    if (legacyPhotoSignals.has(signal as SuspiciousSignal)) return "image_description_mismatch";
+    if (legacyProfilePhotoSignals.has(signal)) return "brand_new_profile";
+    return signal as SuspiciousSignal;
+  });
   return normalized.filter((signal, index) => normalized.indexOf(signal) === index);
 }
 
@@ -117,6 +130,7 @@ function normalizeListingForSavedState(listing: MarketplaceListing): Marketplace
   const imageFilenames = listing.imageFilenames.slice(0, 1).map(normalizeListingImageFilename);
   const firstImage = imageFilenames[0] ?? "placeholder.svg";
   const hasLegacyPhotoSignal = listing.suspiciousSignals.some((signal) => legacyPhotoSignals.has(signal));
+  const hasLegacyProfilePhotoSignal = (listing.suspiciousSignals as string[]).some((signal) => legacyProfilePhotoSignals.has(signal));
   const suspiciousSignals = normalizeSuspiciousSignals(listing.suspiciousSignals);
   const shouldMismatchImage =
     suspiciousSignals.includes("image_description_mismatch") &&
@@ -124,7 +138,11 @@ function normalizeListingForSavedState(listing: MarketplaceListing): Marketplace
 
   return {
     ...listing,
-    sellerAvatarFilename: normalizeProfileImageFilename(listing.sellerAvatarFilename),
+    sellerAvatarType: hasLegacyProfilePhotoSignal ? "face" : listing.sellerAvatarType,
+    sellerAvatarFilename: hasLegacyProfilePhotoSignal
+      ? faceAvatarFilename(listing.sellerName)
+      : normalizeProfileImageFilename(listing.sellerAvatarFilename),
+    sellerProfileAge: hasLegacyProfilePhotoSignal ? "Joined this week" : listing.sellerProfileAge,
     suspiciousSignals,
     imageFilenames: shouldMismatchImage
       ? [firstMismatchedTemplateImage(template, firstImage) ?? firstImage]
