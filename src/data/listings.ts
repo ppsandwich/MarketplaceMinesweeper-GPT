@@ -5,8 +5,7 @@ const requiredCounts: Record<number, number> = {
   1: 12,
   2: 12,
   3: 12,
-  4: 8,
-  5: 6
+  4: 8
 };
 
 const sectionSignalChoices: Array<{
@@ -315,6 +314,294 @@ const bases: Array<{
     cheapPrice: "$12",
     category: "misc",
     baseDescription: "Tall vase with no chips, suitable for branches, umbrellas, or decorative confusion."
+  },
+  {
+    slug: "patio-umbrella",
+    title: "Large patio umbrella",
+    normalPrice: "$95",
+    cheapPrice: "$20",
+    category: "furniture",
+    baseDescription: "Outdoor umbrella with crank handle, weighted base, and a mild lean toward shade."
+  },
+  {
+    slug: "tablet-keyboard",
+    title: "Tablet with keyboard case",
+    normalPrice: "$260",
+    cheapPrice: "$62",
+    category: "electronics",
+    baseDescription: "Tablet, charger, and keyboard case included. Battery still lasts through a sensible afternoon."
+  },
+  {
+    slug: "stand-mixer",
+    title: "Bench stand mixer",
+    normalPrice: "$210",
+    cheapPrice: "$48",
+    category: "appliances",
+    baseDescription: "Mixer with bowl, whisk, and dough hook, mostly used during one ambitious bread era."
+  },
+  {
+    slug: "mitre-saw",
+    title: "Sliding mitre saw",
+    normalPrice: "$190",
+    cheapPrice: "$45",
+    category: "tools",
+    baseDescription: "Saw cuts square, guard works, and the dust bag remains more symbolic than effective."
+  },
+  {
+    slug: "road-bike",
+    title: "Lightweight road bike",
+    normalPrice: "$430",
+    cheapPrice: "$100",
+    category: "vehicles",
+    baseDescription: "Aluminium frame road bike with fresh tape and tyres keen to discuss gradients."
+  },
+  {
+    slug: "mandolin",
+    title: "Acoustic mandolin",
+    normalPrice: "$160",
+    cheapPrice: "$35",
+    category: "musical_instruments",
+    baseDescription: "Mandolin with case, spare strings, and a bright tone that arrives before permission."
+  },
+  {
+    slug: "comic-box",
+    title: "Box of vintage comics",
+    normalPrice: "$180",
+    cheapPrice: "$40",
+    category: "collectibles",
+    baseDescription: "Long box of mixed issues, bagged neatly and alphabetised by previous optimism."
+  },
+  {
+    slug: "vr-headset",
+    title: "VR headset bundle",
+    normalPrice: "$290",
+    cheapPrice: "$68",
+    category: "gaming",
+    baseDescription: "Headset with controllers, charger, and enough foam padding for several realities."
+  },
+  {
+    slug: "storage-cabinet",
+    title: "Lockable storage cabinet",
+    normalPrice: "$140",
+    cheapPrice: "$30",
+    category: "furniture",
+    baseDescription: "Metal cabinet with two keys, adjustable shelves, and a history of hiding printer paper."
+  },
+  {
+    slug: "portable-projector",
+    title: "Portable mini projector",
+    normalPrice: "$170",
+    cheapPrice: "$38",
+    category: "electronics",
+    baseDescription: "Compact projector with remote and case, best paired with dim rooms and brave snacks."
+  },
+  {
+    slug: "rice-cooker",
+    title: "Large rice cooker",
+    normalPrice: "$75",
+    cheapPrice: "$15",
+    category: "appliances",
+    baseDescription: "Rice cooker with steamer basket, measuring cup, and a lid that has seen many weeknights."
+  },
+  {
+    slug: "ladder",
+    title: "Telescopic extension ladder",
+    normalPrice: "$155",
+    cheapPrice: "$35",
+    category: "tools",
+    baseDescription: "Ladder locks properly, folds compactly, and makes gutters seem briefly achievable."
+  },
+  {
+    slug: "child-car-seat",
+    title: "Convertible child car seat",
+    normalPrice: "$120",
+    cheapPrice: "$25",
+    category: "vehicles",
+    baseDescription: "Clean car seat with manual, spare covers, and crumbs removed with professional seriousness."
+  },
+  {
+    slug: "electronic-drum-kit",
+    title: "Compact electronic drum kit",
+    normalPrice: "$360",
+    cheapPrice: "$82",
+    category: "musical_instruments",
+    baseDescription: "Mesh pads, pedal, module, and headphones included for rhythm with domestic diplomacy."
+  },
+  {
+    slug: "coin-album",
+    title: "Album of collectable coins",
+    normalPrice: "$130",
+    cheapPrice: "$28",
+    category: "collectibles",
+    baseDescription: "Coin album from a family collection, labelled carefully by someone who owned tweezers."
+  },
+  {
+    slug: "arcade-stick",
+    title: "Arcade fight stick",
+    normalPrice: "$115",
+    cheapPrice: "$24",
+    category: "gaming",
+    baseDescription: "Fight stick with clicky buttons, long cable, and a grudge against coffee tables."
+  },
+  {
+    slug: "bed-frame",
+    title: "Queen timber bed frame",
+    normalPrice: "$220",
+    cheapPrice: "$50",
+    category: "furniture",
+    baseDescription: "Solid bed frame with slats, bolts labelled, and only one dramatic assembly memory."
+  },
+  {
+    slug: "smart-speaker-pair",
+    title: "Pair of smart speakers",
+    normalPrice: "$150",
+    cheapPrice: "$34",
+    category: "electronics",
+    baseDescription: "Two speakers reset and ready, with power cords and no strong opinions left configured."
+  },
+  {
+    slug: "microwave",
+    title: "Stainless steel microwave",
+    normalPrice: "$90",
+    cheapPrice: "$18",
+    category: "appliances",
+    baseDescription: "Microwave heats evenly, plate spins, and the popcorn button remains overconfident."
+  },
+  {
+    slug: "angle-grinder",
+    title: "Corded angle grinder",
+    normalPrice: "$85",
+    cheapPrice: "$17",
+    category: "tools",
+    baseDescription: "Grinder with handle and guard, used for one project and several cautious pauses."
+  },
+  {
+    slug: "roof-racks",
+    title: "Universal car roof racks",
+    normalPrice: "$125",
+    cheapPrice: "$27",
+    category: "vehicles",
+    baseDescription: "Adjustable racks with keys and clamps, previously carried kayaks and unrealistic packing plans."
+  },
+  {
+    slug: "clarinet",
+    title: "Student clarinet",
+    normalPrice: "$145",
+    cheapPrice: "$32",
+    category: "musical_instruments",
+    baseDescription: "Clarinet with case, reeds, and a school-band past it refuses to elaborate on."
+  },
+  {
+    slug: "stamp-collection",
+    title: "Starter stamp collection",
+    normalPrice: "$95",
+    cheapPrice: "$19",
+    category: "collectibles",
+    baseDescription: "Mixed album of stamps, hinges, and tiny labels written with admirable patience."
+  },
+  {
+    slug: "racing-wheel",
+    title: "Gaming racing wheel",
+    normalPrice: "$250",
+    cheapPrice: "$58",
+    category: "gaming",
+    baseDescription: "Wheel and pedals with desk clamp, force feedback, and a record of oversteer excuses."
+  },
+  {
+    slug: "hallway-console",
+    title: "Narrow hallway console table",
+    normalPrice: "$115",
+    cheapPrice: "$24",
+    category: "furniture",
+    baseDescription: "Slim console table with two drawers, ideal for keys, mail, and unresolved errands."
+  },
+  {
+    slug: "wireless-router",
+    title: "Mesh wireless router set",
+    normalPrice: "$185",
+    cheapPrice: "$42",
+    category: "electronics",
+    baseDescription: "Three-node mesh system reset to factory settings and ready to negotiate with walls."
+  },
+  {
+    slug: "dehumidifier",
+    title: "Portable dehumidifier",
+    normalPrice: "$155",
+    cheapPrice: "$36",
+    category: "appliances",
+    baseDescription: "Dehumidifier with clean filter, working tank sensor, and a vendetta against damp towels."
+  },
+  {
+    slug: "workbench",
+    title: "Garage workbench",
+    normalPrice: "$200",
+    cheapPrice: "$46",
+    category: "tools",
+    baseDescription: "Timber workbench with vice marks, sturdy legs, and stains that imply useful weekends."
+  },
+  {
+    slug: "motorcycle-jacket",
+    title: "Armoured motorcycle jacket",
+    normalPrice: "$175",
+    cheapPrice: "$40",
+    category: "vehicles",
+    baseDescription: "Textile jacket with shoulder and elbow armour, clean liner, and reflective piping."
+  },
+  {
+    slug: "viola",
+    title: "Student viola outfit",
+    normalPrice: "$190",
+    cheapPrice: "$44",
+    category: "musical_instruments",
+    baseDescription: "Viola with bow, rosin, and case, suitable for lessons or confusing violinists."
+  },
+  {
+    slug: "model-train-set",
+    title: "Model train starter set",
+    normalPrice: "$160",
+    cheapPrice: "$35",
+    category: "collectibles",
+    baseDescription: "Starter train set with track pieces, controller, and tiny scenery full of ambition."
+  },
+  {
+    slug: "retro-handheld",
+    title: "Retro handheld console",
+    normalPrice: "$120",
+    cheapPrice: "$26",
+    category: "gaming",
+    baseDescription: "Pocket console with charger, case, and enough old games to damage a commute."
+  },
+  {
+    slug: "linen-armchair",
+    title: "Linen accent armchair",
+    normalPrice: "$170",
+    cheapPrice: "$38",
+    category: "furniture",
+    baseDescription: "Comfortable armchair with removable cover and one cushion that always looks relaxed."
+  },
+  {
+    slug: "dash-cam",
+    title: "Front and rear dash cam",
+    normalPrice: "$130",
+    cheapPrice: "$30",
+    category: "electronics",
+    baseDescription: "Dash cam kit with cables, rear camera, and memory card already formatted."
+  },
+  {
+    slug: "portable-freezer",
+    title: "Portable camping freezer",
+    normalPrice: "$310",
+    cheapPrice: "$72",
+    category: "appliances",
+    baseDescription: "Car fridge freezer with 12V lead, basket, and a proven commitment to cold drinks."
+  },
+  {
+    slug: "tile-cutter",
+    title: "Manual tile cutter",
+    normalPrice: "$105",
+    cheapPrice: "$22",
+    category: "tools",
+    baseDescription: "Tile cutter with scoring wheel, guide rail, and the confidence of a renovated bathroom."
   }
 ];
 

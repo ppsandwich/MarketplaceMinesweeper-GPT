@@ -122,7 +122,7 @@ export function ListingModal({
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
   const isAlreadyOpened = tile.state === "opened";
   const note = tile.playerSuspicionCount;
-  const noteExceedsSafeCount = tile.type === "safe" && note > tile.adjacentMineCount;
+  const noteIndicatesScam = note > 4;
   const secretScamListing = secretMode && tile.type === "mine";
   const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"]);
   const titleHighlight = secretMode && hasSignal(listing, ["explicit_not_a_scam"]);
@@ -244,7 +244,7 @@ export function ListingModal({
                   <output
                     className={[
                       "grid h-10 min-w-12 place-items-center px-3 text-lg font-black",
-                      noteExceedsSafeCount && "text-gum"
+                      noteIndicatesScam && "text-gum"
                     ]
                       .filter(Boolean)
                       .join(" ")}
