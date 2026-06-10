@@ -12,7 +12,7 @@ interface GenerateBoardOptions {
   safeFirstClickPosition: Position;
 }
 
-const MAX_SAFE_ADJACENT_MINE_COUNT = 5;
+const MAX_SAFE_ADJACENT_MINE_COUNT = 4;
 const MAX_BOARD_GENERATION_ATTEMPTS = 500;
 const scamDescriptionClues = [
   "A small deposit holds it before anyone else arrives.",
