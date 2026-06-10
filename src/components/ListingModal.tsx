@@ -19,6 +19,8 @@ interface ListingModalProps {
   onReplay: () => void;
   gameOverMessage: string | null;
   secretMode: boolean;
+  incorrectGuessReveal: boolean;
+  onIncorrectGuessRevealComplete: () => void;
 }
 
 function avatarLabel(type: MarketplaceListing["sellerAvatarType"]) {
@@ -145,11 +147,14 @@ export function ListingModal({
   onSetSuspicionCount,
   onReplay,
   gameOverMessage,
-  secretMode
+  secretMode,
+  incorrectGuessReveal,
+  onIncorrectGuessRevealComplete
 }: ListingModalProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [activeRevealIndex, setActiveRevealIndex] = useState(0);
   const [scamRevealComplete, setScamRevealComplete] = useState(false);
+  const [activeIncorrectRevealIndex, setActiveIncorrectRevealIndex] = useState(0);
   const isScammed = status === "lost" && tile.state === "exploded";
   const showGameOverOverlay = status === "lost" && (gameOverMessage !== null || (tile.state === "exploded" && scamRevealComplete));
   const reportDisabled = tile.state === "opened" || tile.state === "false_report" || status === "won" || status === "lost";
@@ -165,10 +170,19 @@ export function ListingModal({
   const avatarHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo"]);
   const sellerNameHighlight = secretMode && hasSignal(listing, ["unnatural_seller_name"]);
   const sellerAgeHighlight = secretMode && hasSignal(listing, ["brand_new_profile"]);
+  const incorrectRevealSignal = incorrectGuessReveal
+    ? listing.suspiciousSignals[Math.min(activeIncorrectRevealIndex, listing.suspiciousSignals.length - 1)] ?? null
+    : null;
   const activeRevealSignal = isScammed && !scamRevealComplete
     ? listing.suspiciousSignals[Math.min(activeRevealIndex, listing.suspiciousSignals.length - 1)] ?? null
-    : null;
-  const revealCount = isScammed && !scamRevealComplete ? Math.min(activeRevealIndex + 1, listing.suspiciousSignals.length) : 0;
+    : incorrectRevealSignal;
+  const revealCount = isScammed && !scamRevealComplete
+    ? Math.min(activeRevealIndex + 1, listing.suspiciousSignals.length)
+    : incorrectGuessReveal
+      ? Math.min(activeIncorrectRevealIndex + 1, listing.suspiciousSignals.length)
+      : 0;
+  const revealOverlayActive = (isScammed && !scamRevealComplete) || incorrectGuessReveal;
+  const revealOverlayLabel = isScammed ? "Suspicious detail" : "Missed suspicious detail";
   const imageReveal = activeRevealSignal !== null && ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"].includes(activeRevealSignal);
   const titleReveal = activeRevealSignal === "explicit_not_a_scam";
   const locationReveal = activeRevealSignal === "vague_location";
@@ -204,6 +218,32 @@ export function ListingModal({
       window.clearTimeout(timeout);
     };
   }, [isScammed, listing.id, listing.suspiciousSignals.length]);
+
+  useEffect(() => {
+    if (!incorrectGuessReveal) {
+      setActiveIncorrectRevealIndex(0);
+      return;
+    }
+
+    setActiveIncorrectRevealIndex(0);
+    const signalCount = listing.suspiciousSignals.length;
+    const animationMs = signalCount > 0 ? 3000 : 0;
+    const stepMs = signalCount > 0 ? animationMs / signalCount : animationMs;
+    const interval = signalCount > 1
+      ? window.setInterval(() => {
+          setActiveIncorrectRevealIndex((current) => Math.min(current + 1, signalCount - 1));
+        }, stepMs)
+      : null;
+    const timeout = window.setTimeout(() => {
+      if (interval !== null) window.clearInterval(interval);
+      onIncorrectGuessRevealComplete();
+    }, animationMs + 1000);
+
+    return () => {
+      if (interval !== null) window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, [incorrectGuessReveal, listing.id, listing.suspiciousSignals.length, onIncorrectGuessRevealComplete]);
 
   return (
     <div
@@ -379,10 +419,10 @@ export function ListingModal({
           </div>
         </div>
 
-        {isScammed && !scamRevealComplete && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-ink/10 p-6">
+        {revealOverlayActive && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/10 p-6">
             <div className="rounded-lg border-4 border-[#d92d20] bg-white/95 px-8 py-5 text-center shadow-card">
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d92d20]">Suspicious detail</p>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d92d20]">{revealOverlayLabel}</p>
               <p className="text-7xl font-black leading-none text-[#d92d20]">
                 {revealCount}
               </p>

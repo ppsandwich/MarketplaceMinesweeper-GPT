@@ -143,6 +143,7 @@ export default function Home() {
   const [budgetRemaining, setBudgetRemaining] = useState<number | null>(null);
   const [purchasedListings, setPurchasedListings] = useState<PurchasedListing[]>([]);
   const [hasLoadedSavedState, setHasLoadedSavedState] = useState(false);
+  const [incorrectGuessRevealTileId, setIncorrectGuessRevealTileId] = useState<string | null>(null);
 
   const listings = useMemo(() => listingMap(), []);
   const mineCount = DIFFICULTIES[difficulty].mineCount;
@@ -381,6 +382,7 @@ export default function Home() {
       if (!tile || tile.state === "flagged") return;
       if (tile.state === "opened") {
         setSelectedTileId(null);
+        setIncorrectGuessRevealTileId(null);
         return;
       }
 
@@ -432,7 +434,13 @@ export default function Home() {
 
       const won = nextBoard.every((candidate) => candidate.type === "mine" || candidate.state === "opened");
       setBoard(nextBoard);
-      setSelectedTileId(null);
+      if (tile.playerSuspicionCount !== tile.adjacentMineCount) {
+        setIncorrectGuessRevealTileId(tileId);
+        setSelectedTileId(tileId);
+      } else {
+        setIncorrectGuessRevealTileId(null);
+        setSelectedTileId(null);
+      }
       if (won) {
         setStatus("won");
         setEndedAt(Date.now());
@@ -523,6 +531,11 @@ export default function Home() {
         tile.id === tileId ? { ...tile, playerSuspicionCount: Math.max(0, Math.min(5, value)) } : tile
       )
     );
+  }, []);
+
+  const closeSelectedTile = useCallback(() => {
+    setIncorrectGuessRevealTileId(null);
+    setSelectedTileId(null);
   }, []);
 
   function tileLabel(tile: Tile) {
@@ -765,13 +778,15 @@ export default function Home() {
           tile={selectedTile}
           listing={selectedListing}
           status={status}
-          onClose={() => setSelectedTileId(null)}
+          onClose={closeSelectedTile}
           onOpenTile={openTile}
           onToggleFlag={toggleFlag}
           onSetSuspicionCount={setSuspicionCount}
           onReplay={() => resetGame()}
           gameOverMessage={gameOverMessage}
           secretMode={secretMode}
+          incorrectGuessReveal={incorrectGuessRevealTileId === selectedTile.id}
+          onIncorrectGuessRevealComplete={closeSelectedTile}
         />
       )}
 
