@@ -266,8 +266,19 @@ export function ListingModal({
           .join(" ")}
       >
         <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className={["bg-[#e8e0d2] p-4 sm:p-5", elementHighlight(imageHighlight, imageReveal)].filter(Boolean).join(" ")}>
+          <div className={["relative bg-[#e8e0d2] p-4 sm:p-5", elementHighlight(imageHighlight, imageReveal)].filter(Boolean).join(" ")}>
             <ImageCarousel filenames={listing.imageFilenames} title={listing.title} />
+            {revealOverlayActive && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/10 p-4">
+                <div className="rounded-lg border-4 border-[#d92d20] bg-white/95 px-6 py-4 text-center shadow-card sm:px-8 sm:py-5">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#d92d20] sm:text-sm">{revealOverlayLabel}</p>
+                  <p className="text-6xl font-black leading-none text-[#d92d20] sm:text-7xl">
+                    {revealCount}
+                  </p>
+                  <p className="mt-1 text-base font-black text-ink/70 sm:text-lg">of {listing.suspiciousSignals.length}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="relative p-5 sm:p-6">
@@ -418,18 +429,6 @@ export function ListingModal({
             </div>
           </div>
         </div>
-
-        {revealOverlayActive && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/10 p-6">
-            <div className="rounded-lg border-4 border-[#d92d20] bg-white/95 px-8 py-5 text-center shadow-card">
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d92d20]">{revealOverlayLabel}</p>
-              <p className="text-7xl font-black leading-none text-[#d92d20]">
-                {revealCount}
-              </p>
-              <p className="mt-1 text-lg font-black text-ink/70">of {listing.suspiciousSignals.length}</p>
-            </div>
-          </div>
-        )}
 
         {showGameOverOverlay && (
           <div className="absolute inset-0 grid place-items-center bg-[#5f120d]/95 p-6 text-center text-white">
