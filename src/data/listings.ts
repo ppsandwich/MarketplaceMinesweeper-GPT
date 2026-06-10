@@ -13,7 +13,7 @@ const sectionSignalChoices: Array<{
 }> = [
   { section: "description", signals: ["delivery_only", "deposit_required", "payment_outside_platform", "urgent_sale_pressure", "refuses_inspection", "poor_grammar", "too_many_emojis", "sob_story", "duplicate_listing_language"] },
   { section: "seller", signals: ["brand_new_profile", "seller_no_face_photo", "unnatural_seller_name"] },
-  { section: "photos", signals: ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"] },
+  { section: "photos", signals: ["image_description_mismatch"] },
   { section: "location", signals: ["vague_location"] },
   { section: "title", signals: ["explicit_not_a_scam"] }
 ];
@@ -843,10 +843,6 @@ function makeListing(count: number, index: number): MarketplaceListing {
     listing.imageFilenames = [mismatchedImageFilenames(base.slug, count, index)[0]];
   }
 
-  if (signals.includes("multiple_items_in_photos")) {
-    listing.imageFilenames = [mismatchedImageFilenames(base.slug, count, index)[1]];
-  }
-
   return listing;
 }
 
@@ -907,12 +903,6 @@ export function listingFromTemplateWithSuspicionCount(
 
   if (signals.includes("image_description_mismatch")) {
     const imageIndex = random ? Math.floor(random() * alternateImages.length) : (count + index) % alternateImages.length;
-    const image = alternateImages[imageIndex] ?? listing.imageFilenames[0];
-    listing.imageFilenames = [image];
-  }
-
-  if (signals.includes("multiple_items_in_photos")) {
-    const imageIndex = random ? Math.floor(random() * alternateImages.length) : (count + index + 7) % alternateImages.length;
     const image = alternateImages[imageIndex] ?? listing.imageFilenames[0];
     listing.imageFilenames = [image];
   }
