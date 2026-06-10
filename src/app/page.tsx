@@ -4,13 +4,13 @@ import { Flag, Pi, RotateCcw, Search, Timer, Trophy, Wallet } from "lucide-react
 import { Sixtyfour_Convergence } from "next/font/google";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListingModal } from "@/components/ListingModal";
-import { listingsBySuspicionCount } from "@/data/listings";
+import { listingsBySuspicionCount, neutralListingTemplates } from "@/data/listings";
 import { validateListingsData } from "@/data/validateListings";
 import { generateBoard, createEmptyBoard } from "@/game/board";
 import { BOARD_HEIGHT, BOARD_WIDTH, DIFFICULTIES } from "@/game/difficulty";
 import { randomSeed } from "@/game/seededRandom";
 import type { Difficulty, GameStatus, Tile } from "@/types/game";
-import type { MarketplaceListing } from "@/types/listing";
+import type { MarketplaceListing, SuspiciousSignal } from "@/types/listing";
 
 const falseReportLimit = 3;
 const gameStateKey = "marketsweeper:game-state:v1";
@@ -90,16 +90,52 @@ function normalizeProfileImageFilename(filename: string | null | undefined): str
   return filename?.startsWith("profile-") ? filename.replace(/\.png$/i, ".jpg") : filename;
 }
 
+const legacyPhotoSignals = new Set<SuspiciousSignal>(["multiple_items_in_photos", "stock_photo"]);
+
+function findNeutralTemplate(listing: MarketplaceListing): MarketplaceListing | null {
+  return neutralListingTemplates.find((template) => {
+    const slug = template.id.replace(/-template$/, "");
+    return listing.id.startsWith(`${template.id}-`) || listing.id.startsWith(`${slug}-clue-`) || listing.title.startsWith(template.title);
+  }) ?? null;
+}
+
+function firstMismatchedTemplateImage(template: MarketplaceListing | null, currentImage: string): string | null {
+  return neutralListingTemplates
+    .filter((candidate) => candidate.id !== template?.id)
+    .flatMap((candidate) => candidate.imageFilenames.map(normalizeListingImageFilename))
+    .find((filename) => filename !== currentImage) ?? null;
+}
+
+function normalizeSuspiciousSignals(signals: SuspiciousSignal[]): SuspiciousSignal[] {
+  const normalized = signals.map((signal) => legacyPhotoSignals.has(signal) ? "image_description_mismatch" : signal);
+  return normalized.filter((signal, index) => normalized.indexOf(signal) === index);
+}
+
+function normalizeListingForSavedState(listing: MarketplaceListing): MarketplaceListing {
+  const template = findNeutralTemplate(listing);
+  const correctImage = template ? normalizeListingImageFilename(template.imageFilenames[0]) : null;
+  const imageFilenames = listing.imageFilenames.slice(0, 1).map(normalizeListingImageFilename);
+  const firstImage = imageFilenames[0] ?? "placeholder.svg";
+  const hasLegacyPhotoSignal = listing.suspiciousSignals.some((signal) => legacyPhotoSignals.has(signal));
+  const suspiciousSignals = normalizeSuspiciousSignals(listing.suspiciousSignals);
+  const shouldMismatchImage =
+    suspiciousSignals.includes("image_description_mismatch") &&
+    (firstImage === correctImage || hasLegacyPhotoSignal);
+
+  return {
+    ...listing,
+    sellerAvatarFilename: normalizeProfileImageFilename(listing.sellerAvatarFilename),
+    suspiciousSignals,
+    imageFilenames: shouldMismatchImage
+      ? [firstMismatchedTemplateImage(template, firstImage) ?? firstImage]
+      : imageFilenames
+  };
+}
+
 function normalizeListingImages(board: Tile[]): Tile[] {
   return board.map((tile) => ({
     ...tile,
-    listing: tile.listing
-      ? {
-          ...tile.listing,
-          sellerAvatarFilename: normalizeProfileImageFilename(tile.listing.sellerAvatarFilename),
-          imageFilenames: tile.listing.imageFilenames.slice(0, 1).map(normalizeListingImageFilename)
-        }
-      : null
+    listing: tile.listing ? normalizeListingForSavedState(tile.listing) : null
   }));
 }
 

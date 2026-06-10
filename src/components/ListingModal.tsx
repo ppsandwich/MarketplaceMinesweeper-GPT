@@ -112,12 +112,13 @@ function renderDescription(
   description: string,
   listing: MarketplaceListing,
   secretMode: boolean,
-  activeRevealSignal: SuspiciousSignal | null
+  activeRevealSignal: SuspiciousSignal | null,
+  revealAllSuspicious: boolean
 ) {
   return splitSentences(description).map((sentence, index) => {
     const suspiciousSentence = isSuspiciousDescriptionSentence(sentence, listing);
     const secretHighlighted = secretMode && suspiciousSentence;
-    const revealHighlighted = isDescriptionSignal(activeRevealSignal) && suspiciousSentence;
+    const revealHighlighted = suspiciousSentence && (revealAllSuspicious || isDescriptionSignal(activeRevealSignal));
 
     return (
       <span
@@ -164,7 +165,11 @@ export function ListingModal({
   const noteIsAboveSafeRange = note === 4;
   const noteIndicatesScam = note === 5;
   const secretScamListing = secretMode && tile.type === "mine";
-  const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"]);
+  const completedListingReveal =
+    !incorrectGuessReveal &&
+    !(isScammed && !scamRevealComplete) &&
+    (tile.state === "opened" || tile.state === "flagged" || tile.state === "false_report");
+  const imageHighlight = secretMode && hasSignal(listing, ["image_description_mismatch"]);
   const titleHighlight = secretMode && hasSignal(listing, ["explicit_not_a_scam"]);
   const locationHighlight = secretMode && hasSignal(listing, ["vague_location"]);
   const avatarHighlight = secretMode && hasSignal(listing, ["seller_no_face_photo"]);
@@ -183,12 +188,14 @@ export function ListingModal({
       : 0;
   const revealOverlayActive = (isScammed && !scamRevealComplete) || incorrectGuessReveal;
   const revealOverlayLabel = isScammed ? "Suspicious detail" : "Missed suspicious detail";
-  const imageReveal = activeRevealSignal !== null && ["image_description_mismatch", "multiple_items_in_photos", "stock_photo"].includes(activeRevealSignal);
-  const titleReveal = activeRevealSignal === "explicit_not_a_scam";
-  const locationReveal = activeRevealSignal === "vague_location";
-  const avatarReveal = activeRevealSignal === "seller_no_face_photo";
-  const sellerNameReveal = activeRevealSignal === "unnatural_seller_name";
-  const sellerAgeReveal = activeRevealSignal === "brand_new_profile";
+  const imageReveal =
+    activeRevealSignal === "image_description_mismatch" ||
+    (completedListingReveal && hasSignal(listing, ["image_description_mismatch"]));
+  const titleReveal = activeRevealSignal === "explicit_not_a_scam" || (completedListingReveal && hasSignal(listing, ["explicit_not_a_scam"]));
+  const locationReveal = activeRevealSignal === "vague_location" || (completedListingReveal && hasSignal(listing, ["vague_location"]));
+  const avatarReveal = activeRevealSignal === "seller_no_face_photo" || (completedListingReveal && hasSignal(listing, ["seller_no_face_photo"]));
+  const sellerNameReveal = activeRevealSignal === "unnatural_seller_name" || (completedListingReveal && hasSignal(listing, ["unnatural_seller_name"]));
+  const sellerAgeReveal = activeRevealSignal === "brand_new_profile" || (completedListingReveal && hasSignal(listing, ["brand_new_profile"]));
 
   useEffect(() => {
     setAvatarFailed(false);
@@ -334,7 +341,7 @@ export function ListingModal({
             </div>
 
             <p className="mt-5 text-base leading-7 text-ink/85">
-              {renderDescription(listing.description, listing, secretMode, activeRevealSignal)}
+              {renderDescription(listing.description, listing, secretMode, activeRevealSignal, completedListingReveal)}
             </p>
 
             <div className="mt-5 rounded-md border border-ink/15 bg-white/75 p-3">
