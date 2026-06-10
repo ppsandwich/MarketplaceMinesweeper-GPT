@@ -719,8 +719,13 @@ function faceAvatarFilename(sellerName: string): string {
   return `profile-${sellerSlug(sellerName)}-face-01.png`;
 }
 
+const listingImageExtensionOverrides: Record<string, "jpg" | "png"> = {
+  "dining-table": "png"
+};
+
 function imageFilename(baseSlug: string, count: number, index: number): string {
-  return `${baseSlug}-clue-${count}-${index + 1}-01.png`;
+  const extension = listingImageExtensionOverrides[baseSlug] ?? "jpg";
+  return `${baseSlug}-clue-${count}-${index + 1}-01.${extension}`;
 }
 
 function mismatchedImageFilenames(baseSlug: string, count: number, index: number): string[] {
