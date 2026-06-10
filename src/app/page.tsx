@@ -80,13 +80,19 @@ function calculateStartingBudget(board: Tile[], listings: Map<string, Marketplac
   return Math.round(totalListingPrice * 0.6);
 }
 
+function normalizeListingImageFilename(filename: string): string {
+  if (filename === "placeholder.svg") return filename;
+  if (filename === "dining-table-clue-0-1-01.png") return filename;
+  return filename.replace(/\.png$/i, ".jpg");
+}
+
 function normalizeListingImages(board: Tile[]): Tile[] {
   return board.map((tile) => ({
     ...tile,
     listing: tile.listing
       ? {
           ...tile.listing,
-          imageFilenames: tile.listing.imageFilenames.slice(0, 1)
+          imageFilenames: tile.listing.imageFilenames.slice(0, 1).map(normalizeListingImageFilename)
         }
       : null
   }));
