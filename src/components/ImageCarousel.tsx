@@ -9,10 +9,12 @@ interface ImageCarouselProps {
   title: string;
 }
 
+const maxListingPhotos = 3;
+
 export function ImageCarousel({ filenames, title }: ImageCarouselProps) {
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
-  const images = filenames.length > 0 ? filenames : ["placeholder.svg"];
+  const images = filenames.length > 0 ? filenames.slice(0, maxListingPhotos) : ["placeholder.svg"];
   const filename = images[index] ?? images[0];
   const missing = failed[filename];
 

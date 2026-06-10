@@ -1,6 +1,8 @@
 import { listingsBySuspicionCount } from "@/data/listings";
 import { scamListings } from "@/data/scamListings";
 
+const maxListingPhotos = 3;
+
 export function validateListingsData(): void {
   const ids = new Set<string>();
 
@@ -21,6 +23,9 @@ export function validateListingsData(): void {
       if (listing.imageFilenames.length === 0) {
         console.warn(`Listing ${listing.id} has no image filenames.`);
       }
+      if (listing.imageFilenames.length > maxListingPhotos) {
+        console.warn(`Listing ${listing.id} has ${listing.imageFilenames.length} photos; max is ${maxListingPhotos}.`);
+      }
     }
   }
 
@@ -28,5 +33,8 @@ export function validateListingsData(): void {
     if (ids.has(listing.id)) console.warn(`Scam listing id overlaps safe listing: ${listing.id}`);
     ids.add(listing.id);
     if (!listing.isScamTemplate) console.warn(`Scam listing ${listing.id} is missing isScamTemplate.`);
+    if (listing.imageFilenames.length > maxListingPhotos) {
+      console.warn(`Scam listing ${listing.id} has ${listing.imageFilenames.length} photos; max is ${maxListingPhotos}.`);
+    }
   }
 }
