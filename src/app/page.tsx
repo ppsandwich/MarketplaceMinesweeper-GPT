@@ -86,12 +86,17 @@ function normalizeListingImageFilename(filename: string): string {
   return filename.replace(/\.png$/i, ".jpg");
 }
 
+function normalizeProfileImageFilename(filename: string | null | undefined): string | null | undefined {
+  return filename?.startsWith("profile-") ? filename.replace(/\.png$/i, ".jpg") : filename;
+}
+
 function normalizeListingImages(board: Tile[]): Tile[] {
   return board.map((tile) => ({
     ...tile,
     listing: tile.listing
       ? {
           ...tile.listing,
+          sellerAvatarFilename: normalizeProfileImageFilename(tile.listing.sellerAvatarFilename),
           imageFilenames: tile.listing.imageFilenames.slice(0, 1).map(normalizeListingImageFilename)
         }
       : null

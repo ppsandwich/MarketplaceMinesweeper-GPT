@@ -28,11 +28,11 @@ const unnaturalSellerNames = [
   "Listing Support Desk"
 ] as const;
 const nonFaceAvatarFilenames = [
-  "profile-non-face-moving-box-01.png",
-  "profile-non-face-dealz-logo-01.png",
-  "profile-non-face-suspicious-cat-01.png",
-  "profile-non-face-blank-grey-01.png",
-  "profile-non-face-ai-weird-smile-01.png"
+  "profile-non-face-moving-box-01.jpg",
+  "profile-non-face-dealz-logo-01.jpg",
+  "profile-non-face-suspicious-cat-01.jpg",
+  "profile-non-face-blank-grey-01.jpg",
+  "profile-non-face-ai-weird-smile-01.jpg"
 ] as const;
 
 function tileId(x: number, y: number): string {
