@@ -470,7 +470,6 @@ export default function Home() {
                 <Timer size={16} />
                 {formatSeconds(elapsedSeconds)}
               </span>
-              <span className="rounded-md bg-paper px-3 py-2">Seed {seed || "loading"}</span>
             </div>
             {currentStatusCopy && <p className="text-sm font-bold text-ink/65">{currentStatusCopy}</p>}
           </div>
