@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Marketplace Minesweeper",
-  description: "Minesweeper, but every square is a fictional marketplace listing."
+  title: "MarketSweeper",
+  description: "Second-hand marketplaces can be a real minefield. 💣"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

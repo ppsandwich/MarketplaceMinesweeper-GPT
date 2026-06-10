@@ -1,6 +1,7 @@
 "use client";
 
 import { Flag, Pi, RotateCcw, Search, Timer, Trophy, Wallet } from "lucide-react";
+import { Sixtyfour_Convergence } from "next/font/google";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListingModal } from "@/components/ListingModal";
 import { listingsBySuspicionCount } from "@/data/listings";
@@ -14,6 +15,10 @@ import type { MarketplaceListing } from "@/types/listing";
 const falseReportLimit = 3;
 const bannedMessage = "GAME OVER - you've been banned for making too many false reports.";
 const outOfCashMessage = "GAME OVER! You're out of cash.";
+const titleFont = Sixtyfour_Convergence({
+  subsets: ["latin"],
+  weight: "400"
+});
 
 interface PurchasedListing {
   tileId: string;
@@ -54,6 +59,16 @@ function calculateStartingBudget(board: Tile[], listings: Map<string, Marketplac
   }, 0);
 
   return Math.round(totalListingPrice * 0.6);
+}
+
+function generateInitialBoard(seed: string, mineCount: number): Tile[] {
+  return generateBoard({
+    width: BOARD_WIDTH,
+    height: BOARD_HEIGHT,
+    mineCount,
+    seed,
+    safeFirstClickPosition: { x: -1, y: -1 }
+  });
 }
 
 function statusCopy(status: GameStatus, gameOverMessage: string | null): string | null {
@@ -108,8 +123,14 @@ export default function Home() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") validateListingsData();
-    setSeed(randomSeed());
-  }, []);
+    const nextSeed = randomSeed();
+    const generated = generateInitialBoard(nextSeed, mineCount);
+    const generatedBudget = calculateStartingBudget(generated, listings);
+    setSeed(nextSeed);
+    setBoard(generated);
+    setStartingBudget(generatedBudget);
+    setBudgetRemaining(generatedBudget);
+  }, [listings, mineCount]);
 
   useEffect(() => {
     if (status !== "playing" || !startedAt || endedAt) return;
@@ -155,9 +176,12 @@ export default function Home() {
 
   const resetGame = useCallback(
     () => {
+      const nextSeed = randomSeed();
+      const generated = generateInitialBoard(nextSeed, mineCount);
+      const generatedBudget = calculateStartingBudget(generated, listings);
       setStatus("idle");
-      setBoard(createEmptyBoard(BOARD_WIDTH, BOARD_HEIGHT));
-      setSeed(randomSeed());
+      setBoard(generated);
+      setSeed(nextSeed);
       setSelectedTileId(null);
       setStartedAt(null);
       setEndedAt(null);
@@ -168,11 +192,11 @@ export default function Home() {
       setRecentlyFalseReportedTileId(null);
       setDelayWinOverlay(false);
       setWinOverlayDismissed(false);
-      setStartingBudget(null);
-      setBudgetRemaining(null);
+      setStartingBudget(generatedBudget);
+      setBudgetRemaining(generatedBudget);
       setPurchasedListings([]);
     },
-    []
+    [listings, mineCount]
   );
 
   const ensureGeneratedBoard = useCallback(
@@ -402,7 +426,10 @@ export default function Home() {
     <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
       <header className="flex flex-col justify-between gap-4 border-b-2 border-ink pb-5 lg:flex-row lg:items-end">
         <div>
-          <h1 className="text-4xl font-black leading-none sm:text-5xl">Marketplace Minesweeper</h1>
+          <h1 className={`${titleFont.className} text-4xl leading-none sm:text-5xl`}>MarketSweeper</h1>
+          <p className="mt-2 text-base font-bold text-ink/65 sm:text-lg">
+            Second-hand marketplaces can be a real minefield. 💣
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
