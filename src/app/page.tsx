@@ -721,11 +721,11 @@ export default function Home() {
       </header>
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
-        <div>
+        <div className="relative">
           {mobileHowToPlay}
           {indicatorBars}
           <div
-            className="tile-grid mx-auto grid aspect-square w-full max-w-[min(82vh,760px)] gap-1 rounded-md border-2 border-ink bg-ink p-1"
+            className="tile-grid mx-auto grid aspect-square w-full max-w-[min(82vh,760px)] gap-1 rounded-md border-2 border-ink bg-ink p-1 shadow-card"
             aria-label="Marketplace Minesweeper board"
           >
             {board.map((tile) => {
@@ -741,7 +741,7 @@ export default function Home() {
                   type="button"
                   aria-label={tileLabel(tile)}
                   className={[
-                    "relative flex min-h-0 min-w-0 items-center justify-center rounded-sm border text-center font-black transition disabled:cursor-not-allowed",
+                    "relative flex min-h-0 min-w-0 items-center justify-center rounded-sm border text-center font-black shadow-[inset_0_-2px_0_rgba(41,35,31,0.12)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_14px_rgba(41,35,31,0.16),inset_0_-2px_0_rgba(41,35,31,0.12)] active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[inset_0_-2px_0_rgba(41,35,31,0.12)]",
                     "focus:z-10",
                     tile.state === "hidden" && "border-[#d4c9b9] bg-[#f8f5ee] hover:bg-[#fffaf0]",
                     tile.state === "flagged" && "border-[#183f2a] bg-[#183f2a] text-[#b8f3c2]",
@@ -786,11 +786,20 @@ export default function Home() {
           </div>
           {recentlyReportedTileId && (
             <div
-              className="report-success-toast pointer-events-none absolute left-1/2 top-4 z-20 rounded-md border-2 border-ink bg-notice px-5 py-3 text-lg font-black text-ink shadow-card"
+              className="report-success-toast pointer-events-none absolute left-1/2 top-20 z-20 rounded-md border-2 border-ink bg-notice px-5 py-3 text-lg font-black text-ink shadow-card sm:top-4"
               role="status"
               aria-live="polite"
             >
               Good job!
+            </div>
+          )}
+          {recentlyFalseReportedTileId && (
+            <div
+              className="report-success-toast pointer-events-none absolute left-1/2 top-20 z-20 rounded-md border-2 border-[#8f1d16] bg-[#fee4e2] px-5 py-3 text-lg font-black text-[#8f1d16] shadow-card sm:top-4"
+              role="status"
+              aria-live="polite"
+            >
+              False report
             </div>
           )}
         </div>
