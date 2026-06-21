@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, Pi, RotateCcw, Search, Timer, Trophy, Wallet } from "lucide-react";
+import { CircleX, Flag, Pi, RotateCcw, Search, Timer, Trophy, Wallet } from "lucide-react";
 import { Sixtyfour_Convergence } from "next/font/google";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListingModal } from "@/components/ListingModal";
@@ -610,7 +610,7 @@ export default function Home() {
             style={{ width: `${reportProgress}%` }}
             aria-hidden="true"
           />
-          <Flag className="relative" size={16} />
+          <CircleX className="relative" size={16} />
           <span className="relative">
             {flagsUsed}/{mineCount} reported ({reportPercent}%)
           </span>
@@ -711,7 +711,7 @@ export default function Home() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="mt-auto inline-flex h-11 items-center gap-2 rounded-md bg-ink px-4 font-black text-paper"
+            className="mt-auto inline-flex h-11 items-center gap-2 rounded-md bg-ink px-4 font-black text-paper transition hover:-translate-y-0.5 hover:shadow-card active:translate-y-0"
             onClick={() => resetGame()}
           >
             <RotateCcw size={18} />

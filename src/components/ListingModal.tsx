@@ -411,7 +411,7 @@ export function ListingModal({
               {showActionClose && (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-md bg-ink/25 px-4 py-3 font-black text-ink"
+                  className="inline-flex items-center gap-2 rounded-md bg-ink/25 px-4 py-3 font-black text-ink transition hover:bg-ink/35 active:translate-y-px"
                   onClick={onClose}
                 >
                   <X size={18} />
@@ -421,7 +421,7 @@ export function ListingModal({
               {!showActionClose ? (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-55"
+                  className="inline-flex items-center gap-2 rounded-md bg-moss px-4 py-3 font-black text-white transition hover:-translate-y-0.5 hover:shadow-card active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   onClick={() => onOpenTile(tile.id)}
                   disabled={status !== "playing"}
                 >
@@ -431,7 +431,7 @@ export function ListingModal({
               ) : null}
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-md border-2 border-gum bg-white px-4 py-3 font-black text-gum disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35"
+                className="inline-flex items-center gap-2 rounded-md border-2 border-gum bg-white px-4 py-3 font-black text-gum transition hover:-translate-y-0.5 hover:bg-[#fff7f4] hover:shadow-card active:translate-y-0 disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-ink/10 disabled:text-ink/35 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                 onClick={() => onToggleFlag(tile.id)}
                 disabled={reportDisabled}
               >
