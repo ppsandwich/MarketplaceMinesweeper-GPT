@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { AlertTriangle, Flag, Minus, Plus, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, Flag, MapPin, Minus, Plus, ShieldCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { signalLabels } from "@/data/signalLabels";
 import type { GameStatus, Tile } from "@/types/game";
@@ -306,10 +306,22 @@ export function ListingModal({
               >
                 {listing.title}
               </h2>
-              <p className="mt-2 inline-block rounded-md px-1 text-3xl font-black text-gum">{listing.price}</p>
-              <p className={["mt-1 rounded-md text-sm font-semibold text-ink/65", elementHighlight(locationHighlight, locationReveal)].filter(Boolean).join(" ")}>
-                Location: {listing.location}
-              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <p className="inline-block rounded-md border-2 border-gum bg-white px-3 py-1 text-3xl font-black leading-none text-gum shadow-[3px_3px_0_rgba(200,95,70,0.16)]">
+                  {listing.price}
+                </p>
+                <p
+                  className={[
+                    "inline-flex items-center gap-1.5 rounded-md border border-ink/10 bg-white/75 px-2.5 py-1 text-sm font-bold text-ink/65",
+                    elementHighlight(locationHighlight, locationReveal)
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <MapPin size={15} aria-hidden="true" />
+                  Location: {listing.location}
+                </p>
+              </div>
             </div>
 
             <div className="mt-5 flex items-center gap-3 rounded-md border border-ink/10 bg-white/70 p-3">

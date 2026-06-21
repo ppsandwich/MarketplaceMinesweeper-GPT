@@ -17,10 +17,10 @@ export function ImageCarousel({ filenames, title }: ImageCarouselProps) {
   const missing = failed[filename];
 
   return (
-    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-ink/15 bg-[#eee5d7]">
+    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-ink/15 bg-[#eee5d7] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]">
       {missing ? (
         <div className="flex h-full items-center justify-center p-6 text-center text-sm font-semibold text-ink/70">
-          Photo unavailable, which is honestly suspicious in its own little way.
+          Photo unavailable.
         </div>
       ) : (
         <img
